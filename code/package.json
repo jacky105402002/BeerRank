@@ -13,8 +13,9 @@
     "dev:api": "npm --workspace apps/api run start:dev",
     "build:web": "npm --workspace apps/web run build",
     "build:api": "npm --workspace apps/api run build",
+    "sync:web-dist": "node scripts/sync-web-dist.mjs",
     "start:api": "npm --workspace apps/api run start:prod",
-    "build": "npm run build --workspaces",
+    "build": "npm run build:api && npm run build:web && npm run sync:web-dist",
     "typecheck": "npm run typecheck --workspaces"
   }
 }

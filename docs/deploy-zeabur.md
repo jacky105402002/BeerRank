@@ -26,8 +26,8 @@ Recommended Zeabur settings:
 
 ```text
 Root Directory: code
-Build Command: npm install && npm run build:web
-Output Directory: code/apps/web/dist
+Build Command: npm install && npm run build
+Output Directory: dist
 ```
 
 Environment variables:
@@ -36,13 +36,9 @@ Environment variables:
 VITE_BEERRANK_API_URL=https://<beerrank-api-domain>/api
 ```
 
-If Zeabur asks for the service subpath instead of root directory, point it at:
+Because this project uses npm workspaces and `@beerrank/shared`, using root directory `code` is safer for dependency installation.
 
-```text
-code/apps/web
-```
-
-But because this project uses npm workspaces and `@beerrank/shared`, using root directory `code` is safer for dependency installation.
+If Zeabur only provides root directory and environment variables, set root directory to `code`. The root `npm run build` script syncs the frontend output to `code/dist` for static hosting auto-detection.
 
 ## API Service
 
@@ -50,7 +46,7 @@ Recommended Zeabur settings:
 
 ```text
 Root Directory: code
-Build Command: npm install && npm run build:api
+Build Command: npm install && npm run build
 Start Command: npm run start:api
 ```
 
