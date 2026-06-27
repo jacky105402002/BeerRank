@@ -4,7 +4,7 @@ import type {
   BeerMatchRequestDto,
   CreateReviewRequestDto,
   CreateReviewResponseDto
-} from "@beerrank/shared";
+} from "./types";
 import {
   beerDetail,
   beers,

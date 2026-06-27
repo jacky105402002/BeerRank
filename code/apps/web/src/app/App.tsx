@@ -1,6 +1,6 @@
 import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { useMemo, useState } from "react";
-import type { BeerSummaryDto, Locale, ReviewVisibility } from "@beerrank/shared";
+import type { BeerSummaryDto, Locale, ReviewVisibility } from "../types";
 import {
   beerDetail,
   beers,

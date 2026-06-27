@@ -48,6 +48,8 @@ Important:
 
 Do not set the root directory to `code/apps/web/dist`. The `dist` folder is generated after build and is not committed to GitHub.
 
+The web app is intentionally self-contained for Zeabur subdirectory deployment. It does not depend on `../../packages/shared` at install time.
+
 ## API Service
 
 Recommended Zeabur settings:
@@ -72,6 +74,8 @@ Start Command: npm run start:prod
 ```
 
 If API is detected as `static`, cancel that service and recreate it with root directory `code/apps/api`.
+
+The API app is intentionally self-contained for Zeabur subdirectory deployment. It does not depend on `../../packages/shared` at install time.
 
 Runtime URLs after deploy:
 

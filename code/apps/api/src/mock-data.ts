@@ -7,7 +7,7 @@ import type {
   FeedPostDto,
   LeaderboardRowDto,
   UserProfileDto
-} from "@beerrank/shared";
+} from "./types";
 
 export const profiles: UserProfileDto[] = [
   {

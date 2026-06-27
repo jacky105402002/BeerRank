@@ -1,4 +1,4 @@
-import type { Locale } from "@beerrank/shared";
+import type { Locale } from "../types";
 
 type Dictionary = {
   nav: {

@@ -10,7 +10,6 @@
     "preview": "vite preview --host localhost --port 6677"
   },
   "dependencies": {
-    "@beerrank/shared": "file:../../packages/shared",
     "@vitejs/plugin-react": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

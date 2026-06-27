@@ -7,7 +7,7 @@ import type {
   FeedPostDto,
   LeaderboardRowDto,
   ListResponseDto
-} from "@beerrank/shared";
+} from "../../types";
 
 const apiBaseUrl = import.meta.env.VITE_BEERRANK_API_URL ?? "http://127.0.0.1:3001/api";
 
