@@ -26,7 +26,9 @@ async function bootstrap() {
     }
   });
 
-  await app.listen(process.env.PORT ? Number(process.env.PORT) : 3001, "0.0.0.0");
+  const requestedPort = Number(process.env.PORT ?? process.env.WEB_PORT ?? 3001);
+  const port = Number.isFinite(requestedPort) ? requestedPort : 3001;
+  await app.listen(port, "0.0.0.0");
 }
 
 void bootstrap();
