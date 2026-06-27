@@ -1,0 +1,10 @@
+services:
+  api:
+    profiles: ["future"]
+    build:
+      context: ./apps/api
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - AI_PROVIDER=mock

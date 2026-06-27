@@ -1,0 +1,23 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+dev-server*.log
+*.log
+*.pid
+
+# Legacy root-level Vite prototype files. Current application code lives in /code.
+/index.html
+/package.json
+/package-lock.json
+/src/
+/tsconfig.json
+/tsconfig.node.json
+/vite.config.*
+/設計稿.fig
+
+# Local/generated design workspaces.
+_workflow_ref/
+_open_design/
