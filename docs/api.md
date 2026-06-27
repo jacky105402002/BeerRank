@@ -45,7 +45,7 @@ http://127.0.0.1:3001/api/docs-json
 
 | Method | Path | Response |
 | --- | --- | --- |
-| `GET` | `/health` | Mock API health status |
+| `GET` | `/health` | Mock API and PostgreSQL health status |
 | `GET` | `/me` | `CurrentUserResponseDto` |
 | `GET` | `/feed` | `ListResponseDto<FeedPostDto>` |
 | `GET` | `/leaderboard?style=IPA` | `ListResponseDto<LeaderboardRowDto>` |
@@ -64,3 +64,22 @@ http://127.0.0.1:3001/api/docs-json
 - the submitted `beerId` resolves to a known Beer
 
 This is still mock logic. Supabase integration will replace storage and persistence later, but the response shape should remain stable unless the frontend flow changes.
+
+## Database Health
+
+`GET /health` checks `DATABASE_URL` when it is configured.
+
+Expected deployed response after Zeabur PostgreSQL is connected:
+
+```json
+{
+  "ok": true,
+  "service": "BeerRank API",
+  "mode": "mock",
+  "db": {
+    "configured": true,
+    "connected": true,
+    "database": "zeabur"
+  }
+}
+```

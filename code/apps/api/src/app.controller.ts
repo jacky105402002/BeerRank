@@ -16,17 +16,23 @@ import {
   posts,
   profiles
 } from "./mock-data";
+import { DatabaseService } from "./database.service";
 
 @ApiTags("MVP Mock API")
 @Controller()
 export class AppController {
-  @ApiOperation({ summary: "Check mock API health" })
+  constructor(private readonly database: DatabaseService) {}
+
+  @ApiOperation({ summary: "Check mock API and database health" })
   @Get("health")
-  health() {
+  async health() {
+    const db = await this.database.health();
+
     return {
-      ok: true,
+      ok: db.configured ? db.connected : true,
       service: "BeerRank API",
-      mode: "mock"
+      mode: "mock",
+      db
     };
   }
 
