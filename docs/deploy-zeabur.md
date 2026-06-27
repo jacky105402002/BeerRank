@@ -63,6 +63,7 @@ Environment variables:
 ```text
 PORT=3001
 FRONTEND_ORIGINS=https://<beerrank-web-domain>
+DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<database>
 ```
 
 Expected Zeabur auto-detection:
@@ -86,6 +87,16 @@ https://<beerrank-api-domain>/api/docs-json
 ```
 
 ## DB Service
+
+Current Zeabur PostgreSQL service can be used by the API through `DATABASE_URL`.
+
+Do not commit the real connection string to GitHub. Store it only in the Zeabur API service environment variables.
+
+For local development, put the real value in an untracked `.env` file under:
+
+```text
+code/apps/api/.env
+```
 
 Current MVP direction is still Supabase for Auth, PostgreSQL, and Storage.
 
