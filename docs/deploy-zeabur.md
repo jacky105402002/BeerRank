@@ -15,7 +15,7 @@ BeerRank should be deployed as three Zeabur services.
 | Service | Type | Source Path | Purpose |
 | --- | --- | --- | --- |
 | `beerrank-web` | Static frontend | `code/apps/web` | React/Vite web app |
-| `beerrank-api` | Node.js backend | `code/apps/api` or `code` | NestJS API |
+| `beerrank-api` | Node.js backend | `code/apps/api` | NestJS API |
 | `beerrank-db` | PostgreSQL / Supabase later | Zeabur DB service or Supabase | MVP persistence |
 
 For the current mock-first stage, the API can run without DB. The DB service becomes necessary when Node 8 Supabase/PostgreSQL integration starts.
@@ -25,9 +25,7 @@ For the current mock-first stage, the API can run without DB. The DB service bec
 Recommended Zeabur settings:
 
 ```text
-Root Directory: code
-Build Command: npm install && npm run build
-Output Directory: dist
+Root Directory: code/apps/web
 ```
 
 Environment variables:
@@ -36,18 +34,26 @@ Environment variables:
 VITE_BEERRANK_API_URL=https://<beerrank-api-domain>/api
 ```
 
-Because this project uses npm workspaces and `@beerrank/shared`, using root directory `code` is safer for dependency installation.
+Expected Zeabur auto-detection:
 
-If Zeabur only provides root directory and environment variables, set root directory to `code`. The root `npm run build` script syncs the frontend output to `code/dist` for static hosting auto-detection.
+```text
+Provider: static / Vite
+Build Command: npm install && npm run build
+Output Directory: dist
+```
+
+If Zeabur does not show build command fields, this is still okay as long as the root directory is `code/apps/web`.
+
+Important:
+
+Do not set the root directory to `code/apps/web/dist`. The `dist` folder is generated after build and is not committed to GitHub.
 
 ## API Service
 
 Recommended Zeabur settings:
 
 ```text
-Root Directory: code
-Build Command: npm install && npm run build
-Start Command: npm run start:api
+Root Directory: code/apps/api
 ```
 
 Environment variables:
@@ -56,6 +62,16 @@ Environment variables:
 PORT=3001
 FRONTEND_ORIGINS=https://<beerrank-web-domain>
 ```
+
+Expected Zeabur auto-detection:
+
+```text
+Provider: Node.js
+Build Command: npm install && npm run build
+Start Command: npm run start:prod
+```
+
+If API is detected as `static`, cancel that service and recreate it with root directory `code/apps/api`.
 
 Runtime URLs after deploy:
 

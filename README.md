@@ -61,6 +61,6 @@ docs/deploy-zeabur.md
 
 Recommended services:
 
-- `beerrank-web`: frontend static service
-- `beerrank-api`: NestJS API service
+- `beerrank-web`: frontend static service, root directory `code/apps/web`
+- `beerrank-api`: NestJS API service, root directory `code/apps/api`
 - `beerrank-db`: database/auth/storage service, preferably Supabase for MVP
