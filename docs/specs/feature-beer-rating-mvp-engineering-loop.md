@@ -2,7 +2,7 @@
 
 Status: Executing local MVP loop
 
-Last updated: 2026-06-27
+Last updated: 2026-06-28
 
 ## Purpose
 
@@ -469,7 +469,7 @@ Create a NestJS API contract that supports the frontend before integrating real 
 
 Current status:
 
-In progress. Mock REST endpoints and shared DTOs have been added so the frontend can move from local fixture imports to API-backed mock responses in the next pass.
+Accepted for public mock deployment. Mock REST endpoints, Swagger, deployed frontend/API, and API-to-PostgreSQL health check are working. Endpoints still return mock data except for database health.
 
 Inputs:
 
@@ -512,6 +512,10 @@ Can revisit when:
 Objective:
 
 Replace mock persistence with Supabase Auth, PostgreSQL, and Storage.
+
+Current status:
+
+Adapted for Zeabur PostgreSQL first. The API can connect to Zeabur PostgreSQL through `DATABASE_URL`, but schema, persistence, auth, and storage are not implemented yet.
 
 Inputs:
 
@@ -556,6 +560,10 @@ Can revisit when:
 Objective:
 
 Make AI-assisted Beer matching replaceable and auditable.
+
+Current status:
+
+Mock endpoint exists at `POST /api/ai/beer-match`. Real AI image/text matching, provider configuration, suggestion persistence, and Beer catalog matching are not implemented yet.
 
 Inputs:
 
@@ -705,7 +713,7 @@ After a node:
 Current node:
 
 ```text
-Node 5: Scaffold
+Node 8: PostgreSQL Integration / Node 9 preparation
 ```
 
 Completed:
@@ -722,24 +730,25 @@ Completed:
 - Node 5 Scaffold started.
 - Initial web/API/shared workspace created under `C:\code\BeerRank\code`.
 - First-pass React mock frontend started and served at `http://127.0.0.1:6677/`.
+- Public frontend deployed to `https://beer-rank.zeabur.app/`.
+- Public API deployed to `https://api-beer-rank.zeabur.app/api`.
+- Zeabur PostgreSQL health check passes through `/api/health`.
 
 Next recommended node:
 
 ```text
-Node 6: Frontend MVP
+L01 - DB Schema And Migration
 ```
 
-Before scaffolding code, confirm:
+Before executing the next loop item, confirm:
 
-- `docs/specs/feature-beer-rating-mvp-architecture.md`
-- code root: `C:\code\BeerRank\code`
-- npm workspaces
-- web port `6677`
-- api port `3001`
-- frontend mock-first phase
+- `tasks/current/mvp-loop-backlog.md`
+- deployed API has `DATABASE_URL`
+- migration runner strategy
+- seed data scope
 
-After scaffold is accepted, proceed to:
+Backlog reference:
 
 ```text
-Node 6: Frontend MVP
+tasks/current/mvp-loop-backlog.md
 ```
