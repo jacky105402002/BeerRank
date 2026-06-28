@@ -34,7 +34,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L09 | Manual beer search and create Beer | Node 8/9 | done | User can search existing Beer or create `needs_review` Beer when AI fails. |
 | L10 | Leaderboard aggregation | Node 8 | done | Only eligible public reviews count; Beer Detail proof count matches ranking. |
 | L11 | Frontend form completion | Node 6/8 | done | Review composer uses real inputs/API states instead of polished mock values. |
-| L12 | QA and release gate | Node 10/11 | pending | End-to-end public MVP flow passes on mobile and desktop. |
+| L12 | QA and release gate | Node 10/11 | done | End-to-end public MVP preview flow passes with known auth/storage limitations. |
 
 ## L01 - DB Schema And Migration
 
@@ -329,14 +329,57 @@ browser smoke: review page has textarea, rating range, upload label, publish dis
 browser smoke: /review/new/match without photos shows guard and hides manual Beer panel
 ```
 
+## L12 - QA And Release Gate
+
+Implemented:
+
+- Local production builds verified for Web and API.
+- Zeabur API health verified with PostgreSQL connected.
+- Swagger UI verified on deployed API.
+- Live API read endpoints verified against Zeabur DB.
+- End-to-end API flow verified: upload, AI match, publish review, comment, feed/detail visibility, leaderboard eligibility.
+- Temporary QA review/comment data was cleaned from DB after verification.
+- Deployed web routes verified for review composer, AI match guard, and leaderboard live data rendering.
+- `tasks/current/test-report.md` replaced with a readable L12 QA report.
+
+Acceptance criteria:
+
+- Done: Web and API builds pass.
+- Done: Zeabur API and Swagger are reachable.
+- Done: DB-backed feed, leaderboard, beer detail, search, comments, and current user endpoints respond.
+- Done: AI matching returns an existing Beer candidate with live provider config.
+- Done: Public review publish persists and becomes leaderboard eligible.
+- Done: Published review appears in feed and Beer Detail proof reviews.
+- Done: Comment persistence works for the newly published review.
+- Done: Deployed review composer renders real form controls and guarded publish state.
+- Done: Deployed AI Match route is gated by uploaded-photo state.
+
+Release decision:
+
+- Pass for MVP preview deployment.
+- Not yet a full production launch because Google Auth, durable photo storage, and Beer moderation remain pending.
+
+Verification:
+
+```text
+npm run build (web) -> pass
+npm run build (api) -> pass
+GET /api/health -> ok=true, db.connected=true
+GET /api/docs -> 200
+API E2E -> upload, AI match, review publish, comment, feed/detail/ranking checks pass
+Deployed web /review/new -> real composer state rendered
+Deployed web /review/new/match -> no-photo guard rendered
+Deployed web /leaderboard -> live Citra IPA ranking rendered
+```
+
 ## Recommended Next Item
 
 Start with:
 
 ```text
-L12 - QA and release gate
+Post-MVP Hardening
 ```
 
 Reason:
 
-The MVP now has API persistence, DB leaderboard rules, AI matching, manual Beer fallback, and a real review composer. The next loop should verify the complete user path on local and Zeabur before cutting another deployment checkpoint.
+The current MVP preview has passed the release gate. The next work should choose whether to harden Auth, durable photo storage, or Beer moderation first.

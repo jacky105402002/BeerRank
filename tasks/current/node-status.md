@@ -11,4 +11,4 @@
 | 009 | in_progress | 2026-06-28 | L07 AI matching adapter contract and DB audit persistence added; real vision provider pending. |
 | 010 | in_progress | 2026-06-28 | L08 Zeabur/OpenAI-compatible vision-text adapters implemented; live key verification pending. |
 | 011 | in_progress | 2026-06-28 | L09 manual Beer search and needs_review Beer draft creation added; L10 leaderboard aggregation verified. |
-| 007 | pending | 2026-06-28 | QA, review, docs, and release after persistence/auth/AI. |
+| 007 | done | 2026-06-28 | L12 QA and release gate passed for MVP preview; production hardening still needs Auth, durable storage, and Beer moderation. |
