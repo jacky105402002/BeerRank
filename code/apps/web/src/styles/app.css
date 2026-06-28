@@ -262,6 +262,27 @@ small {
   margin-top: 10px;
 }
 
+.upload-trigger {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.file-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.form-error {
+  color: #b42318;
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 8px 0 0;
+}
+
 .tabs .active,
 .segmented .active {
   background: #df740a;

@@ -5,7 +5,9 @@ import type {
   CreateCommentRequestDto,
   CreateCommentResponseDto,
   CreateReviewRequestDto,
-  CreateReviewResponseDto
+  CreateReviewResponseDto,
+  UploadReviewPhotosRequestDto,
+  UploadReviewPhotosResponseDto
 } from "./types";
 import {
   beerDetail,
@@ -21,6 +23,7 @@ import {
 import { AuthService, type RequestLike } from "./auth.service";
 import { DatabaseService } from "./database.service";
 import { ReadService } from "./read.service";
+import { StorageService } from "./storage.service";
 import { WriteService } from "./write.service";
 
 @ApiTags("MVP Mock API")
@@ -30,6 +33,7 @@ export class AppController {
     private readonly authService: AuthService,
     private readonly database: DatabaseService,
     private readonly readService: ReadService,
+    private readonly storageService: StorageService,
     private readonly writeService: WriteService
   ) {}
 
@@ -208,6 +212,25 @@ export class AppController {
     }
 
     return highConfidenceMatch;
+  }
+
+  @ApiOperation({ summary: "Upload review photos and return ordered public photo URLs" })
+  @ApiBody({
+    schema: {
+      example: {
+        files: [
+          {
+            fileName: "beer.jpg",
+            mimeType: "image/jpeg",
+            dataUrl: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ..."
+          }
+        ]
+      }
+    }
+  })
+  @Post("uploads/review-photos")
+  uploadReviewPhotos(@Body() body: UploadReviewPhotosRequestDto): UploadReviewPhotosResponseDto {
+    return this.storageService.uploadReviewPhotos(body);
   }
 
   @ApiOperation({ summary: "Publish a review post" })

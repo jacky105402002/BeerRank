@@ -52,6 +52,7 @@ http://127.0.0.1:3001/api/docs-json
 | `GET` | `/beers/:beerId` | `BeerDetailDto` |
 | `GET` | `/posts/:postId/comments` | `ListResponseDto<CommentDto>` |
 | `POST` | `/ai/beer-match` | `BeerMatchResponseDto` |
+| `POST` | `/uploads/review-photos` | `UploadReviewPhotosResponseDto` |
 | `POST` | `/reviews` | `CreateReviewResponseDto` |
 | `POST` | `/posts/:postId/comments` | `CreateCommentResponseDto` |
 
@@ -81,6 +82,58 @@ MOCK_PROFILE_ID=user-jordan
 ```
 
 `AUTH_PROVIDER` is documented now for the future Supabase switch. Current runtime behavior is still mock/profile-header based.
+
+## Photo Upload Foundation
+
+As of L06, the frontend can select up to 3 image files, compress them in-browser, and call:
+
+```http
+POST /api/uploads/review-photos
+```
+
+Request:
+
+```json
+{
+  "files": [
+    {
+      "fileName": "beer-proof.jpg",
+      "mimeType": "image/jpeg",
+      "dataUrl": "data:image/jpeg;base64,..."
+    }
+  ]
+}
+```
+
+Response:
+
+```json
+{
+  "photos": [
+    {
+      "url": "data:image/jpeg;base64,...",
+      "fileName": "beer-proof.jpg",
+      "mimeType": "image/jpeg",
+      "sortOrder": 1,
+      "isPrimary": true,
+      "storageProvider": "mock"
+    }
+  ]
+}
+```
+
+Rules:
+
+- 1 to 3 photos per review.
+- First returned photo is primary.
+- Only image data URLs are accepted in the current mock provider.
+- Frontend compresses selected photos to JPEG before upload.
+- `STORAGE_PROVIDER=mock` is the current deploy-safe foundation.
+
+Pending real storage:
+
+- Replace `StorageService` internals with Supabase Storage or another object store.
+- Keep the upload response shape stable so `/reviews` can continue receiving `photoUrls`.
 
 ## MVP Ranking Rule In API
 

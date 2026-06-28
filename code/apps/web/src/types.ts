@@ -143,6 +143,19 @@ export interface BeerMatchRequestDto {
   mode?: "high" | "low" | "none";
 }
 
+export interface CreateReviewRequestDto {
+  beerId: ID;
+  photoUrls: string[];
+  rating: number;
+  reviewText: string;
+  visibility: ReviewVisibility;
+}
+
+export interface CreateReviewResponseDto {
+  post: FeedPostDto;
+  leaderboardEligible: boolean;
+}
+
 export interface CreateCommentRequestDto {
   body: string;
   parentCommentId?: ID;
@@ -150,4 +163,27 @@ export interface CreateCommentRequestDto {
 
 export interface CreateCommentResponseDto {
   comment: CommentDto;
+}
+
+export interface UploadReviewPhotoInputDto {
+  fileName: string;
+  mimeType: string;
+  dataUrl: string;
+}
+
+export interface UploadReviewPhotosRequestDto {
+  files: UploadReviewPhotoInputDto[];
+}
+
+export interface UploadedReviewPhotoDto {
+  url: string;
+  fileName: string;
+  mimeType: string;
+  sortOrder: number;
+  isPrimary: boolean;
+  storageProvider: "mock" | "supabase";
+}
+
+export interface UploadReviewPhotosResponseDto {
+  photos: UploadedReviewPhotoDto[];
 }

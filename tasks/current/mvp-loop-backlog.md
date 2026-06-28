@@ -28,7 +28,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L03 | Review publish persistence | Node 8 | done | `POST /api/reviews` writes review/photos and survives refresh. |
 | L04 | Comment persistence | Node 8 | done | Comments and one-level replies are stored and returned from DB. |
 | L05 | Auth foundation | Node 8 | in_progress | Profile-header foundation is done; Supabase Google login remains pending. |
-| L06 | Photo upload and storage | Node 8 | pending | Up to 3 photos upload; first photo is primary; public URLs render. |
+| L06 | Photo upload and storage | Node 8 | in_progress | Mock upload foundation is done; Supabase/object storage remains pending. |
 | L07 | AI matching contract hardening | Node 9 | pending | Mock and real providers share one adapter contract; suggestions are auditable. |
 | L08 | Real AI vision/text matching | Node 9 | pending | Server-side AI suggests candidates from photos and metadata. |
 | L09 | Manual beer search and create Beer | Node 8/9 | pending | User can search existing Beer or create `needs_review` Beer when AI fails. |
@@ -186,7 +186,16 @@ Acceptance criteria:
 
 ## L06 - Photo Upload And Storage
 
-Decision needed:
+Implemented foundation:
+
+- `POST /api/uploads/review-photos` accepts 1 to 3 image data URLs.
+- API validates image data URLs and maximum count.
+- Response returns ordered photo URLs with `sortOrder` and `isPrimary`.
+- Frontend can select photos from file input.
+- Frontend compresses selected photos to JPEG before upload.
+- Review composer uses uploaded photo URLs for publish.
+
+Still needed for full L06 completion:
 
 - Supabase Storage
 - Cloudflare R2
@@ -195,10 +204,11 @@ Decision needed:
 
 Acceptance criteria:
 
-- User can upload up to 3 images.
-- First image is primary.
-- API stores photo URLs and sort order.
-- Public photos render in feed, beer detail, and profile.
+- Done: User can upload up to 3 images through the MVP mock storage provider.
+- Done: First image is primary.
+- Done: API returns photo URLs and sort order.
+- Pending real storage: API stores objects in a durable public bucket.
+- Pending real storage: Public photos survive deploy restarts and render in feed, beer detail, and profile.
 
 ## L07 - AI Matching Contract Hardening
 

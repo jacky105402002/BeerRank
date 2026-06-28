@@ -5,10 +5,14 @@ import type {
   CommentDto,
   CreateCommentRequestDto,
   CreateCommentResponseDto,
+  CreateReviewRequestDto,
+  CreateReviewResponseDto,
   CurrentUserResponseDto,
   FeedPostDto,
   LeaderboardRowDto,
-  ListResponseDto
+  ListResponseDto,
+  UploadReviewPhotosRequestDto,
+  UploadReviewPhotosResponseDto
 } from "../../types";
 
 const apiBaseUrl = import.meta.env.VITE_BEERRANK_API_URL ?? "http://127.0.0.1:3001/api";
@@ -54,6 +58,18 @@ export const beerRankApi = {
   },
   matchBeer(body: BeerMatchRequestDto) {
     return request<BeerMatchResponseDto>("/ai/beer-match", {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  uploadReviewPhotos(body: UploadReviewPhotosRequestDto) {
+    return request<UploadReviewPhotosResponseDto>("/uploads/review-photos", {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+  },
+  createReview(body: CreateReviewRequestDto) {
+    return request<CreateReviewResponseDto>("/reviews", {
       method: "POST",
       body: JSON.stringify(body)
     });

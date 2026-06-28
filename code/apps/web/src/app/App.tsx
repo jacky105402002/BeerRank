@@ -1,6 +1,6 @@
 import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
-import { useMemo, useState } from "react";
-import type { BeerSummaryDto, Locale, ReviewVisibility } from "../types";
+import { type ChangeEvent, useMemo, useState } from "react";
+import type { BeerSummaryDto, Locale, ReviewVisibility, UploadReviewPhotoInputDto } from "../types";
 import {
   beerDetail,
   beers,
@@ -117,7 +117,7 @@ export function App() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftState>({
-    photoUrls: [beers[0].imageUrl ?? "", beers[2].imageUrl ?? ""],
+    photoUrls: [],
     rating: 4,
     visibility: "public"
   });
@@ -206,14 +206,112 @@ function FeedPage({ t, onLogin, onComments }: { t: T; onLogin: () => void; onCom
   );
 }
 
-function ReviewPage({ t, draft, setDraft }: { t: T; draft: DraftState; setDraft: (draft: DraftState) => void }) {
+async function imageFileToUploadInput(file: File): Promise<UploadReviewPhotoInputDto> {
+  const image = await readImage(file);
+  const canvas = document.createElement("canvas");
+  const maxEdge = 1280;
+  const scale = Math.min(1, maxEdge / Math.max(image.width, image.height));
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Canvas is not available");
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+
+  return {
+    fileName: file.name.replace(/\.[^.]+$/, ".jpg"),
+    mimeType: "image/jpeg",
+    dataUrl
+  };
+}
+
+function readImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("Image could not be decoded"));
+      image.src = String(reader.result);
+    };
+    reader.onerror = () => reject(new Error("Image could not be read"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function ReviewPage({
+  t,
+  draft,
+  setDraft
+}: {
+  t: T;
+  draft: DraftState;
+  setDraft: (draft: DraftState | ((current: DraftState) => DraftState)) => void;
+}) {
   const navigate = useNavigate();
   const isReady = draft.photoUrls.length > 0 && draft.rating > 0 && draft.confirmedBeer;
   const query = new URLSearchParams(location.search);
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "error">("idle");
+  const [publishState, setPublishState] = useState<"idle" | "publishing" | "error">("idle");
+
+  async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFiles = Array.from(event.target.files ?? []).slice(0, 3);
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    setUploadState("uploading");
+    try {
+      const files = await Promise.all(selectedFiles.map((file) => imageFileToUploadInput(file)));
+      const response = await beerRankApi.uploadReviewPhotos({ files });
+      setDraft((current) => ({
+        ...current,
+        photoUrls: response.photos.sort((a, b) => a.sortOrder - b.sortOrder).map((photo) => photo.url)
+      }));
+      setUploadState("idle");
+    } catch {
+      setUploadState("error");
+    } finally {
+      event.target.value = "";
+    }
+  }
+
+  async function publishReview() {
+    if (!draft.confirmedBeer || draft.photoUrls.length === 0) {
+      return;
+    }
+
+    setPublishState("publishing");
+    try {
+      await beerRankApi.createReview({
+        beerId: draft.confirmedBeer.id,
+        photoUrls: draft.photoUrls,
+        rating: draft.rating,
+        reviewText: "Citrus aroma, crisp body, and a clean bitter finish.",
+        visibility: draft.visibility
+      });
+      setPublishState("idle");
+      navigate("/review/new?published=true");
+    } catch {
+      setPublishState("error");
+    }
+  }
   return (
     <section className="page">
       <h1>{t.review.title}</h1>
       <p className="muted">{t.review.subtitle}</p>
+      <input
+        id="review-photo-input"
+        className="file-input"
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        multiple
+        onChange={handlePhotoChange}
+      />
       <div className="photo-grid">
         {draft.photoUrls.slice(0, 3).map((url, index) => (
           <div className={index === 0 ? "photo primary" : "photo"} key={url}>
@@ -223,6 +321,10 @@ function ReviewPage({ t, draft, setDraft }: { t: T; draft: DraftState; setDraft:
         ))}
         {draft.photoUrls.length < 3 ? <div className="photo add-photo">+ 新增</div> : null}
       </div>
+      <label className="secondary upload-trigger" htmlFor="review-photo-input">
+        {uploadState === "uploading" ? "Uploading photos..." : "Choose photos"}
+      </label>
+      {uploadState === "error" ? <p className="form-error">Photo upload failed. Use JPG, PNG, or WebP, up to 3 photos.</p> : null}
       <div className="panel">
         <label>{t.review.visibility}</label>
         <div className="segmented">
@@ -244,7 +346,10 @@ function ReviewPage({ t, draft, setDraft }: { t: T; draft: DraftState; setDraft:
         <label>{t.review.note}</label>
         <p className="mock-input">柑橘香氣明顯，苦韻乾淨，尾段收得很舒服。</p>
       </div>
-      <button className="primary" disabled={!isReady} onClick={() => navigate("/review/new?published=true")}>{t.review.publish}</button>
+      <button className="primary" disabled={!isReady || publishState === "publishing"} onClick={publishReview}>
+        {publishState === "publishing" ? "Publishing..." : t.review.publish}
+      </button>
+      {publishState === "error" ? <p className="form-error">Publishing failed. Please try again.</p> : null}
       {query.has("published") ? <PublishSuccess t={t} /> : null}
     </section>
   );
