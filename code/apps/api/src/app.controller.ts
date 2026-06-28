@@ -13,13 +13,11 @@ import {
   beerDetail,
   beers,
   commentsByPostId,
-  highConfidenceMatch,
   leaderboard,
-  lowConfidenceMatch,
-  noResultMatch,
   posts,
   profiles
 } from "./mock-data";
+import { AiMatchService } from "./ai-match.service";
 import { AuthService, type RequestLike } from "./auth.service";
 import { DatabaseService } from "./database.service";
 import { ReadService } from "./read.service";
@@ -30,6 +28,7 @@ import { WriteService } from "./write.service";
 @Controller()
 export class AppController {
   constructor(
+    private readonly aiMatchService: AiMatchService,
     private readonly authService: AuthService,
     private readonly database: DatabaseService,
     private readonly readService: ReadService,
@@ -190,6 +189,11 @@ export class AppController {
   }
 
   @ApiOperation({ summary: "Suggest Beer candidates from the review draft" })
+  @ApiHeader({
+    name: "x-beerrank-profile-id",
+    required: false,
+    description: "Temporary MVP auth header. Used to audit AI match suggestions."
+  })
   @ApiBody({
     schema: {
       example: {
@@ -197,21 +201,18 @@ export class AppController {
         beerName: "Space Dust IPA",
         breweryName: "Elysian Brewing",
         styleHint: "Double IPA",
+        locale: "zh-TW",
         mode: "high"
       }
     }
   })
   @Post("ai/beer-match")
-  matchBeer(@Body() body: BeerMatchRequestDto) {
-    if (body.mode === "none") {
-      return noResultMatch;
-    }
-
-    if (body.mode === "low" || body.photoUrls.length === 0) {
-      return lowConfidenceMatch;
-    }
-
-    return highConfidenceMatch;
+  matchBeer(
+    @Body() body: BeerMatchRequestDto,
+    @Req() request: RequestLike
+  ) {
+    const profileId = this.authService.resolveProfileId(request);
+    return this.aiMatchService.matchBeer(body, profileId);
   }
 
   @ApiOperation({ summary: "Upload review photos and return ordered public photo URLs" })

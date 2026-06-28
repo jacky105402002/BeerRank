@@ -14,6 +14,7 @@ export type BeerStyle =
 
 export type ReviewVisibility = "public" | "private";
 export type MatchConfidenceLevel = "high" | "medium" | "low" | "none";
+export type AiProvider = "mock" | "openai";
 
 export interface UserProfileDto {
   id: ID;
@@ -130,6 +131,7 @@ export interface BeerMatchRequestDto {
   beerName?: string;
   breweryName?: string;
   styleHint?: BeerStyle;
+  locale?: "zh-TW" | "en";
   mode?: "high" | "low" | "none";
 }
 

@@ -137,7 +137,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<FeedPage t={t} onLogin={() => setLoginOpen(true)} onComments={setCommentsOpen} />} />
             <Route path="/review/new" element={<ReviewPage t={t} draft={draft} setDraft={setDraft} />} />
-            <Route path="/review/new/match" element={<MatchPage t={t} setDraft={setDraft} />} />
+            <Route path="/review/new/match" element={<MatchPage t={t} locale={locale} draft={draft} setDraft={setDraft} />} />
             <Route path="/beers/:beerId" element={<BeerDetailPage t={t} onLogin={() => setLoginOpen(true)} />} />
             <Route path="/leaderboard" element={<LeaderboardPage t={t} />} />
             <Route path="/profile" element={<ProfilePage t={t} />} />
@@ -368,15 +368,25 @@ function PublishSuccess({ t }: { t: T }) {
   );
 }
 
-function MatchPage({ t, setDraft }: { t: T; setDraft: (updater: DraftState | ((current: DraftState) => DraftState)) => void }) {
+function MatchPage({
+  t,
+  locale,
+  draft,
+  setDraft
+}: {
+  t: T;
+  locale: Locale;
+  draft: DraftState;
+  setDraft: (updater: DraftState | ((current: DraftState) => DraftState)) => void;
+}) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"high" | "low" | "none" | "create">("high");
   const matchMode = mode === "low" ? "low" : mode === "none" ? "none" : "high";
   const fallbackMatch = mode === "high" ? highConfidenceMatch : lowConfidenceMatch;
   const { data: match } = useApiResource(
-    () => beerRankApi.matchBeer({ photoUrls: ["mock-photo"], mode: matchMode }),
+    () => beerRankApi.matchBeer({ photoUrls: draft.photoUrls, locale, mode: matchMode }),
     fallbackMatch,
-    [matchMode]
+    [draft.photoUrls.join("|"), locale, matchMode]
   );
   const candidate = match.candidates[0];
   function confirmBeer(beer = candidate.beer) {

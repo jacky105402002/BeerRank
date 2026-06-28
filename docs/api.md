@@ -79,6 +79,7 @@ Environment variables:
 ```text
 AUTH_PROVIDER=mock
 MOCK_PROFILE_ID=user-jordan
+AI_PROVIDER=mock
 ```
 
 `AUTH_PROVIDER` is documented now for the future Supabase switch. Current runtime behavior is still mock/profile-header based.
@@ -134,6 +135,74 @@ Pending real storage:
 
 - Replace `StorageService` internals with Supabase Storage or another object store.
 - Keep the upload response shape stable so `/reviews` can continue receiving `photoUrls`.
+
+## AI Matching Contract
+
+As of L07, `POST /ai/beer-match` is routed through a provider adapter instead of returning inline mock data from the controller.
+
+Current provider:
+
+```text
+AI_PROVIDER=mock
+```
+
+Future provider:
+
+```text
+AI_PROVIDER=openai
+```
+
+Request:
+
+```json
+{
+  "photoUrls": ["https://example.com/beer-photo.jpg"],
+  "beerName": "Space Dust IPA",
+  "breweryName": "Elysian Brewing",
+  "styleHint": "Double IPA",
+  "locale": "zh-TW",
+  "mode": "high"
+}
+```
+
+Response:
+
+```json
+{
+  "requestId": "match-...",
+  "status": "high_confidence",
+  "candidates": [
+    {
+      "beer": {
+        "id": "beer-space-dust",
+        "name": "Space Dust IPA"
+      },
+      "confidenceScore": 0.98,
+      "confidenceLevel": "high",
+      "reasons": [
+        {
+          "type": "label_text",
+          "label": "Label text matched Space Dust IPA",
+          "confidence": 0.97
+        }
+      ]
+    }
+  ]
+}
+```
+
+Audit behavior:
+
+- When `DATABASE_URL` is configured, every match response is persisted to `beer_match_suggestions`.
+- Each candidate becomes one audit row.
+- `no_results` creates an audit row with `beer_id=null`, `confidence_level=none`, and `confidence_score=0`.
+- `raw_response` stores the normalized request and response for later debugging.
+
+Product boundary:
+
+- AI suggestions never confirm a Beer automatically.
+- User confirmation remains the only source of truth before `POST /reviews`.
+- AI keys stay server-side; the frontend only calls BeerRank API.
 
 ## MVP Ranking Rule In API
 

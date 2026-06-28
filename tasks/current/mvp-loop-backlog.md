@@ -29,7 +29,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L04 | Comment persistence | Node 8 | done | Comments and one-level replies are stored and returned from DB. |
 | L05 | Auth foundation | Node 8 | in_progress | Profile-header foundation is done; Supabase Google login remains pending. |
 | L06 | Photo upload and storage | Node 8 | in_progress | Mock upload foundation is done; Supabase/object storage remains pending. |
-| L07 | AI matching contract hardening | Node 9 | pending | Mock and real providers share one adapter contract; suggestions are auditable. |
+| L07 | AI matching contract hardening | Node 9 | done | Mock provider uses adapter contract; suggestions are auditable. |
 | L08 | Real AI vision/text matching | Node 9 | pending | Server-side AI suggests candidates from photos and metadata. |
 | L09 | Manual beer search and create Beer | Node 8/9 | pending | User can search existing Beer or create `needs_review` Beer when AI fails. |
 | L10 | Leaderboard aggregation | Node 8 | pending | Only eligible public reviews count; Beer Detail proof count matches ranking. |
@@ -212,20 +212,23 @@ Acceptance criteria:
 
 ## L07 - AI Matching Contract Hardening
 
-Scope:
+Implemented:
 
-- Define `AI_PROVIDER=mock|openai`.
-- Define server-side adapter interface.
-- Request includes image URLs, optional beer name, optional brewery, style hint, and locale.
+- `AI_PROVIDER=mock|openai` is documented.
+- `AiMatchService` routes matching through a provider adapter.
+- Mock provider returns the same response shape expected from a future real provider.
+- Request includes image URLs, optional beer name, optional brewery, style hint, locale, and test mode.
 - Response includes candidates, confidence score, confidence level, and reasons.
-- Persist `beer_match_suggestions`.
+- DB-backed API persists `beer_match_suggestions` audit rows.
+- `no_results` is auditable with `beer_id=null`.
+- Frontend sends draft photo URLs and locale to the match endpoint.
 
 Acceptance criteria:
 
-- Mock provider and future real provider share the same interface.
-- AI suggestions are stored for audit.
-- User confirmation remains final.
-- No AI key is exposed to frontend.
+- Done: Mock provider and future real provider share one adapter interface.
+- Done: AI suggestions are stored for audit when DB is configured.
+- Done: User confirmation remains final.
+- Done: No AI key is exposed to frontend.
 
 ## L08 - Real AI Vision/Text Matching
 

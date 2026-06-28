@@ -140,6 +140,7 @@ export interface BeerMatchRequestDto {
   beerName?: string;
   breweryName?: string;
   styleHint?: BeerStyle;
+  locale?: Locale;
   mode?: "high" | "low" | "none";
 }
 
