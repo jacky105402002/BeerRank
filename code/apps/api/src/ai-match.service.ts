@@ -37,6 +37,14 @@ type OpenAiResponse = {
   }>;
 };
 
+type ChatCompletionResponse = {
+  choices?: Array<{
+    message?: {
+      content?: string;
+    };
+  }>;
+};
+
 type AuditCandidate = {
   beerId: string | null;
   confidenceScore: number;
@@ -60,6 +68,10 @@ export class AiMatchService {
   }
 
   private createAdapter(provider: string | undefined): AiMatchAdapter {
+    if (provider === "zeabur") {
+      return new ZeaburAiHubMatchAdapter();
+    }
+
     if (provider === "openai") {
       return new OpenAiVisionMatchAdapter();
     }
@@ -203,52 +215,8 @@ class MockAiMatchAdapter implements AiMatchAdapter {
   }
 }
 
-class OpenAiVisionMatchAdapter implements AiMatchAdapter {
-  readonly provider = "openai" as const;
-
-  async matchBeer(request: BeerMatchRequestDto): Promise<BeerMatchResponseDto> {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new BadRequestException("OPENAI_API_KEY is required when AI_PROVIDER=openai");
-    }
-
-    const response = await fetch("https://api.openai.com/v1/responses", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
-        input: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "input_text",
-                text: this.buildPrompt(request)
-              },
-              ...request.photoUrls.map((photoUrl) => ({
-                type: "input_image",
-                image_url: photoUrl,
-                detail: "auto"
-              }))
-            ]
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      const message = await response.text();
-      throw new BadRequestException(`OpenAI match failed: ${message.slice(0, 500)}`);
-    }
-
-    const data = await response.json() as OpenAiResponse;
-    return this.toBeerMatchResponse(data);
-  }
-
-  private buildPrompt(request: BeerMatchRequestDto): string {
+abstract class CatalogMatchAdapterBase {
+  protected buildPrompt(request: BeerMatchRequestDto): string {
     return [
       "You are BeerRank's beer matching assistant.",
       "Match the user's beer photo and text hints to the Beer catalog only.",
@@ -270,8 +238,8 @@ class OpenAiVisionMatchAdapter implements AiMatchAdapter {
     ].join("\n");
   }
 
-  private toBeerMatchResponse(data: OpenAiResponse): BeerMatchResponseDto {
-    const parsed = this.parseOpenAiJson(data);
+  protected toBeerMatchResponseFromText(text: string | undefined): BeerMatchResponseDto {
+    const parsed = this.parseJson(text);
     const candidates = (parsed.candidates ?? [])
       .map((candidate) => this.toCandidate(candidate))
       .filter((candidate): candidate is BeerMatchCandidateDto => Boolean(candidate))
@@ -284,12 +252,7 @@ class OpenAiVisionMatchAdapter implements AiMatchAdapter {
     };
   }
 
-  private parseOpenAiJson(data: OpenAiResponse): OpenAiParsedResponse {
-    const text = data.output_text ?? data.output
-      ?.flatMap((item) => item.content ?? [])
-      .map((content) => content.text ?? "")
-      .join("\n");
-
+  private parseJson(text: string | undefined): OpenAiParsedResponse {
     if (!text?.trim()) {
       return { candidates: [] };
     }
@@ -371,5 +334,114 @@ class OpenAiVisionMatchAdapter implements AiMatchAdapter {
     }
 
     return Math.max(0, Math.min(1, value));
+  }
+}
+
+class OpenAiVisionMatchAdapter extends CatalogMatchAdapterBase implements AiMatchAdapter {
+  readonly provider = "openai" as const;
+
+  async matchBeer(request: BeerMatchRequestDto): Promise<BeerMatchResponseDto> {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new BadRequestException("OPENAI_API_KEY is required when AI_PROVIDER=openai");
+    }
+
+    const response = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL ?? "gpt-4.1-mini",
+        input: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "input_text",
+                text: this.buildPrompt(request)
+              },
+              ...request.photoUrls.map((photoUrl) => ({
+                type: "input_image",
+                image_url: photoUrl,
+                detail: "auto"
+              }))
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new BadRequestException(`OpenAI match failed: ${message.slice(0, 500)}`);
+    }
+
+    const data = await response.json() as OpenAiResponse;
+    return this.toBeerMatchResponse(data);
+  }
+
+  private toBeerMatchResponse(data: OpenAiResponse): BeerMatchResponseDto {
+    const text = data.output_text ?? data.output
+      ?.flatMap((item) => item.content ?? [])
+      .map((content) => content.text ?? "")
+      .join("\n");
+
+    return this.toBeerMatchResponseFromText(text);
+  }
+}
+
+class ZeaburAiHubMatchAdapter extends CatalogMatchAdapterBase implements AiMatchAdapter {
+  readonly provider = "zeabur" as const;
+
+  async matchBeer(request: BeerMatchRequestDto): Promise<BeerMatchResponseDto> {
+    const apiKey = process.env.AI_API_KEY ?? process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new BadRequestException("AI_API_KEY is required when AI_PROVIDER=zeabur");
+    }
+
+    const baseUrl = this.normalizeBaseUrl(process.env.AI_BASE_URL ?? "https://hnd1.aihub.zeabur.ai/");
+    const response = await fetch(`${baseUrl}chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: process.env.AI_MODEL ?? process.env.OPENAI_MODEL ?? "gpt-5.1",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: this.buildPrompt(request)
+              },
+              ...request.photoUrls.map((photoUrl) => ({
+                type: "image_url",
+                image_url: {
+                  url: photoUrl
+                }
+              }))
+            ]
+          }
+        ],
+        stream: false
+      })
+    });
+
+    if (!response.ok) {
+      const message = await response.text();
+      throw new BadRequestException(`Zeabur AI Hub match failed: ${message.slice(0, 500)}`);
+    }
+
+    const data = await response.json() as ChatCompletionResponse;
+    const text = data.choices?.[0]?.message?.content;
+    return this.toBeerMatchResponseFromText(text);
+  }
+
+  private normalizeBaseUrl(baseUrl: string): string {
+    return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
   }
 }

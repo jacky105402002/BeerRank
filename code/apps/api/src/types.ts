@@ -14,7 +14,7 @@ export type BeerStyle =
 
 export type ReviewVisibility = "public" | "private";
 export type MatchConfidenceLevel = "high" | "medium" | "low" | "none";
-export type AiProvider = "mock" | "openai";
+export type AiProvider = "mock" | "openai" | "zeabur";
 
 export interface UserProfileDto {
   id: ID;

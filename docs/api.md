@@ -149,6 +149,15 @@ AI_PROVIDER=mock
 Future provider:
 
 ```text
+AI_PROVIDER=zeabur
+AI_BASE_URL=https://hnd1.aihub.zeabur.ai/
+AI_API_KEY=<server-side Zeabur AI Hub key>
+AI_MODEL=gpt-5.1
+```
+
+Official OpenAI provider:
+
+```text
 AI_PROVIDER=openai
 OPENAI_API_KEY=<server-side key>
 OPENAI_MODEL=gpt-4.1-mini
@@ -208,12 +217,12 @@ Product boundary:
 
 ## Real AI Vision/Text Matching
 
-As of L08, `AI_PROVIDER=openai` is implemented behind the same `AiMatchService` adapter used by the mock provider.
+As of L08, `AI_PROVIDER=openai` and `AI_PROVIDER=zeabur` are implemented behind the same `AiMatchService` adapter used by the mock provider.
 
 Behavior:
 
-- The API sends user hints plus up to 3 review photos to OpenAI's Responses API.
-- The request uses multimodal content with `input_text` and `input_image`.
+- The official OpenAI adapter sends user hints plus up to 3 review photos to the Responses API.
+- The Zeabur AI Hub adapter uses OpenAI-compatible Chat Completions with text and image URL content.
 - The model is instructed to choose only Beer ids from the server-side Beer catalog.
 - Unknown or invented Beer ids are filtered out by BeerRank API.
 - If no catalog candidate survives filtering, the response becomes `no_results`.
@@ -222,16 +231,18 @@ Behavior:
 Required Zeabur API environment variables:
 
 ```text
-AI_PROVIDER=openai
-OPENAI_API_KEY=<server-side OpenAI API key>
-OPENAI_MODEL=gpt-4.1-mini
+AI_PROVIDER=zeabur
+AI_BASE_URL=https://hnd1.aihub.zeabur.ai/
+AI_API_KEY=<server-side Zeabur AI Hub key>
+AI_MODEL=gpt-5.1
 ```
 
 Current verification status:
 
 - Mock provider is fully smoke-tested.
-- OpenAI provider compiles and safely fails when `OPENAI_API_KEY` is missing.
-- Live OpenAI matching still needs a real API key in the API service environment.
+- Official OpenAI provider compiles and safely fails when `OPENAI_API_KEY` is missing.
+- Zeabur AI Hub provider compiles and safely fails when `AI_API_KEY` is missing.
+- Live AI matching still needs a real API key in the API service environment.
 
 ## MVP Ranking Rule In API
 
