@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
-import { Pool } from "pg";
+import { Pool, QueryResultRow } from "pg";
 
 type DatabaseHealth = {
   configured: boolean;
@@ -48,6 +48,18 @@ export class DatabaseService implements OnModuleDestroy {
         error: error instanceof Error ? error.message : "Unknown database error"
       };
     }
+  }
+
+  isConfigured() {
+    return Boolean(this.pool);
+  }
+
+  async query<T extends QueryResultRow = QueryResultRow>(text: string, params?: unknown[]) {
+    if (!this.pool) {
+      throw new Error("DATABASE_URL is not configured");
+    }
+
+    return this.pool.query<T>(text, params);
   }
 
   async onModuleDestroy() {

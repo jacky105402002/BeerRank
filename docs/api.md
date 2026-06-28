@@ -83,3 +83,14 @@ Expected deployed response after Zeabur PostgreSQL is connected:
   }
 }
 ```
+
+## Database-Backed Read Endpoints
+
+As of L02, these endpoints read from PostgreSQL when `DATABASE_URL` is configured, with mock fallback for local development without DB:
+
+- `GET /feed`
+- `GET /leaderboard`
+- `GET /beers/:beerId`
+- `GET /posts/:postId/comments`
+
+`POST /reviews` is still mock-only until L03.

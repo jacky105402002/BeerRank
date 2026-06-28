@@ -24,8 +24,8 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | ID | Loop Item | Node | Status | Exit Gate |
 | --- | --- | --- | --- | --- |
 | L01 | DB schema and migration | Node 8 | done | Tables and seed data exist; migration is repeatable. |
-| L02 | API reads from PostgreSQL | Node 8 | next | Feed, leaderboard, beer detail, comments read seeded DB data. |
-| L03 | Review publish persistence | Node 8 | pending | `POST /api/reviews` writes review/photos and survives refresh. |
+| L02 | API reads from PostgreSQL | Node 8 | done | Feed, leaderboard, beer detail, comments read seeded DB data. |
+| L03 | Review publish persistence | Node 8 | next | `POST /api/reviews` writes review/photos and survives refresh. |
 | L04 | Comment persistence | Node 8 | pending | Comments and one-level replies are stored and returned from DB. |
 | L05 | Auth foundation | Node 8 | pending | Google login identifies the current user; mock user removed from protected writes. |
 | L06 | Photo upload and storage | Node 8 | pending | Up to 3 photos upload; first photo is primary; public URLs render. |
@@ -88,10 +88,20 @@ Scope:
 
 Acceptance criteria:
 
-- Deployed API returns seeded DB data.
-- Leaderboard only reads eligible public reviews.
-- Beer Detail shows proof reviews from DB.
-- Frontend still works without UI changes.
+- Done locally against Zeabur DB: API returns seeded DB data.
+- Done locally against Zeabur DB: leaderboard reads `beer_leaderboard`.
+- Done locally against Zeabur DB: Beer Detail shows proof reviews from DB.
+- Pending deploy verification: frontend still works after Zeabur API redeploy.
+
+Verification:
+
+```text
+GET /api/health -> 200
+GET /api/feed -> 200
+GET /api/leaderboard -> 200
+GET /api/beers/beer-citra-ipa -> 200
+GET /api/posts/post-citra-alex/comments -> 200
+```
 
 ## L03 - Review Publish Persistence
 

@@ -17,11 +17,15 @@ import {
   profiles
 } from "./mock-data";
 import { DatabaseService } from "./database.service";
+import { ReadService } from "./read.service";
 
 @ApiTags("MVP Mock API")
 @Controller()
 export class AppController {
-  constructor(private readonly database: DatabaseService) {}
+  constructor(
+    private readonly database: DatabaseService,
+    private readonly readService: ReadService
+  ) {}
 
   @ApiOperation({ summary: "Check mock API and database health" })
   @Get("health")
@@ -46,7 +50,13 @@ export class AppController {
 
   @ApiOperation({ summary: "List public feed review posts" })
   @Get("feed")
-  feed() {
+  async feed() {
+    if (this.readService.isReady()) {
+      return {
+        items: await this.readService.getFeed()
+      };
+    }
+
     return {
       items: posts
     };
@@ -54,7 +64,13 @@ export class AppController {
 
   @ApiOperation({ summary: "List leaderboard rows, optionally filtered by style" })
   @Get("leaderboard")
-  getLeaderboard(@Query("style") style?: string) {
+  async getLeaderboard(@Query("style") style?: string) {
+    if (this.readService.isReady()) {
+      return {
+        items: await this.readService.getLeaderboard(style)
+      };
+    }
+
     const normalizedStyle = style?.toLowerCase();
     const items = normalizedStyle && normalizedStyle !== "all"
       ? leaderboard.filter((row) => row.beer.style.toLowerCase().includes(normalizedStyle))
@@ -67,7 +83,11 @@ export class AppController {
 
   @ApiOperation({ summary: "Get Beer detail with public proof reviews" })
   @Get("beers/:beerId")
-  getBeerDetail(@Param("beerId") beerId: string) {
+  async getBeerDetail(@Param("beerId") beerId: string) {
+    if (this.readService.isReady()) {
+      return this.readService.getBeerDetail(beerId);
+    }
+
     if (beerDetail.beer.id === beerId) {
       return beerDetail;
     }
@@ -86,7 +106,13 @@ export class AppController {
 
   @ApiOperation({ summary: "Get a post comment thread" })
   @Get("posts/:postId/comments")
-  getComments(@Param("postId") postId: string) {
+  async getComments(@Param("postId") postId: string) {
+    if (this.readService.isReady()) {
+      return {
+        items: await this.readService.getComments(postId)
+      };
+    }
+
     return {
       items: commentsByPostId[postId] ?? []
     };
