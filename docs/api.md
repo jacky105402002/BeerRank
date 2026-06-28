@@ -49,10 +49,12 @@ http://127.0.0.1:3001/api/docs-json
 | `GET` | `/me` | `CurrentUserResponseDto` |
 | `GET` | `/feed` | `ListResponseDto<FeedPostDto>` |
 | `GET` | `/leaderboard?style=IPA` | `ListResponseDto<LeaderboardRowDto>` |
+| `GET` | `/beers?query=IPA` | `ListResponseDto<BeerSummaryDto>` |
 | `GET` | `/beers/:beerId` | `BeerDetailDto` |
 | `GET` | `/posts/:postId/comments` | `ListResponseDto<CommentDto>` |
 | `POST` | `/ai/beer-match` | `BeerMatchResponseDto` |
 | `POST` | `/uploads/review-photos` | `UploadReviewPhotosResponseDto` |
+| `POST` | `/beers` | `CreateBeerResponseDto` |
 | `POST` | `/reviews` | `CreateReviewResponseDto` |
 | `POST` | `/posts/:postId/comments` | `CreateCommentResponseDto` |
 
@@ -214,6 +216,60 @@ Product boundary:
 - AI suggestions never confirm a Beer automatically.
 - User confirmation remains the only source of truth before `POST /reviews`.
 - AI keys stay server-side; the frontend only calls BeerRank API.
+
+## Manual Beer Search And Draft Creation
+
+As of L09, AI failure has a manual recovery path.
+
+Search:
+
+```http
+GET /api/beers?query=Space%20Dust
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "id": "beer-space-dust",
+      "name": "Space Dust IPA",
+      "brewery": {
+        "id": "brewery-elysian",
+        "name": "Elysian Brewing"
+      },
+      "style": "Double IPA",
+      "abv": 8.2
+    }
+  ]
+}
+```
+
+Create draft:
+
+```http
+POST /api/beers
+x-beerrank-profile-id: user-jordan
+```
+
+```json
+{
+  "name": "Morning Haze IPA",
+  "breweryName": "Cloudburst Brewing",
+  "style": "IPA",
+  "abv": 6.5,
+  "imageUrl": "https://example.com/beer-photo.jpg"
+}
+```
+
+Rules:
+
+- If brewery exists, it is reused.
+- If brewery does not exist, it is created.
+- If the same brewery already has the Beer name, the existing Beer is returned.
+- New Beer rows use `status=needs_review`.
+- The created draft can be selected for the current review, but future admin/moderation is still needed before treating it as canonical catalog data.
 
 ## Real AI Vision/Text Matching
 

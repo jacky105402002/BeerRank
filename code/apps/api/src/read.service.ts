@@ -239,6 +239,44 @@ export class ReadService {
     }));
   }
 
+  async searchBeers(query?: string): Promise<BeerSummaryDto[]> {
+    const normalizedQuery = query?.trim().toLowerCase();
+    const params: string[] = [];
+    const filterSql = normalizedQuery
+      ? `
+        where
+          lower(b.name) like $1
+          or lower(br.name) like $1
+          or lower(b.style) like $1
+      `
+      : "";
+
+    if (normalizedQuery) {
+      params.push(`%${normalizedQuery}%`);
+    }
+
+    const result = await this.database.query<BeerRow>(`
+      select
+        b.id as beer_id,
+        b.name as beer_name,
+        b.style as beer_style,
+        b.abv as beer_abv,
+        b.image_url as beer_image_url,
+        br.id as brewery_id,
+        br.name as brewery_name,
+        br.country as brewery_country
+      from beers b
+      join breweries br on br.id = b.brewery_id
+      ${filterSql}
+      order by
+        case when b.status = 'confirmed' then 0 else 1 end,
+        b.created_at desc
+      limit 20
+    `, params);
+
+    return result.rows.map((row) => this.mapBeer(row));
+  }
+
   async getBeerDetail(beerId: string): Promise<BeerDetailDto> {
     const detail = await this.database.query<BeerDetailRow>(`
       select

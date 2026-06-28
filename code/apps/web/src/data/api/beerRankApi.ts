@@ -3,6 +3,8 @@ import type {
   BeerMatchRequestDto,
   BeerMatchResponseDto,
   CommentDto,
+  CreateBeerRequestDto,
+  CreateBeerResponseDto,
   CreateCommentRequestDto,
   CreateCommentResponseDto,
   CreateReviewRequestDto,
@@ -46,6 +48,16 @@ export const beerRankApi = {
   },
   getBeerDetail(beerId: string) {
     return request<BeerDetailDto>(`/beers/${beerId}`);
+  },
+  searchBeers(query: string) {
+    const params = query.trim() ? `?query=${encodeURIComponent(query.trim())}` : "";
+    return request<ListResponseDto<BeerDetailDto["beer"]>>(`/beers${params}`);
+  },
+  createBeer(body: CreateBeerRequestDto) {
+    return request<CreateBeerResponseDto>("/beers", {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
   },
   getComments(postId: string) {
     return request<ListResponseDto<CommentDto>>(`/posts/${postId}/comments`);

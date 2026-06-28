@@ -417,12 +417,64 @@ small {
 }
 
 .mock-input,
-.comment-input {
+.comment-input,
+.text-input {
   border: 1px solid #eadccd;
   background: #fffdf8;
   border-radius: 12px;
   padding: 12px;
   color: #756354;
+}
+
+.text-input {
+  width: 100%;
+  color: #241c16;
+}
+
+.inline-search,
+.draft-beer-form,
+.manual-results {
+  display: grid;
+  gap: 10px;
+}
+
+.inline-search {
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.inline-search .secondary {
+  width: auto;
+  margin-top: 0;
+}
+
+.manual-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.manual-result {
+  width: 100%;
+  border: 1px solid #eadccd;
+  background: #fffdf8;
+  border-radius: 14px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.manual-result span {
+  display: grid;
+  gap: 2px;
+}
+
+.manual-result em {
+  color: #df740a;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .confirmed {

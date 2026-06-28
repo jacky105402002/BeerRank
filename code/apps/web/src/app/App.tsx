@@ -1,6 +1,6 @@
 import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
 import { type ChangeEvent, useMemo, useState } from "react";
-import type { BeerSummaryDto, Locale, ReviewVisibility, UploadReviewPhotoInputDto } from "../types";
+import type { BeerStyle, BeerSummaryDto, Locale, ReviewVisibility, UploadReviewPhotoInputDto } from "../types";
 import {
   beerDetail,
   beers,
@@ -381,6 +381,15 @@ function MatchPage({
 }) {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"high" | "low" | "none" | "create">("high");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [manualResults, setManualResults] = useState<BeerSummaryDto[]>([]);
+  const [manualState, setManualState] = useState<"idle" | "loading" | "error">("idle");
+  const [draftBeer, setDraftBeer] = useState({
+    name: "",
+    breweryName: "",
+    style: "IPA" as BeerStyle,
+    abv: "6.5"
+  });
   const matchMode = mode === "low" ? "low" : mode === "none" ? "none" : "high";
   const fallbackMatch = mode === "high" ? highConfidenceMatch : lowConfidenceMatch;
   const { data: match } = useApiResource(
@@ -392,6 +401,40 @@ function MatchPage({
   function confirmBeer(beer = candidate.beer) {
     setDraft((current) => ({ ...current, confirmedBeer: beer }));
     navigate("/review/new");
+  }
+
+  async function searchBeer() {
+    setManualState("loading");
+    try {
+      const response = await beerRankApi.searchBeers(searchQuery);
+      setManualResults(response.items);
+      setManualState("idle");
+    } catch {
+      setManualResults(beers.filter((beer) => {
+        const query = searchQuery.toLowerCase();
+        return beer.name.toLowerCase().includes(query) ||
+          beer.brewery.name.toLowerCase().includes(query) ||
+          beer.style.toLowerCase().includes(query);
+      }));
+      setManualState("error");
+    }
+  }
+
+  async function createBeerDraft() {
+    setManualState("loading");
+    try {
+      const response = await beerRankApi.createBeer({
+        name: draftBeer.name,
+        breweryName: draftBeer.breweryName,
+        style: draftBeer.style,
+        abv: Number(draftBeer.abv) || undefined,
+        imageUrl: draft.photoUrls[0]
+      });
+      setManualState("idle");
+      confirmBeer(response.beer);
+    } catch {
+      setManualState("error");
+    }
   }
   return (
     <section className="page">
@@ -417,7 +460,7 @@ function MatchPage({
           <p className="mock-input">IPA · 6.5%（選填）</p>
           <button className="primary" onClick={() => confirmBeer(beers[0])}>建立並確認</button>
         </div>
-      ) : (
+      ) : candidate ? (
         <div className="match-card">
           <img src={candidate.beer.imageUrl} alt={candidate.beer.name} />
           <div>
@@ -430,7 +473,44 @@ function MatchPage({
             <button className="primary" onClick={() => confirmBeer()}>{t.ai.useBeer}</button>
           </div>
         </div>
+      ) : (
+        <div className="panel hero-panel">
+          <h2>No confident match</h2>
+          <p className="muted">Try manual search below, or create a draft Beer if this one is not in the catalog yet.</p>
+        </div>
       )}
+      <div className="panel manual-panel">
+        <h2>Manual Beer match</h2>
+        <p className="muted">Search the catalog when AI is unsure. If it is not listed yet, create a draft Beer for this review.</p>
+        <div className="inline-search">
+          <input className="text-input" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Beer, brewery, or style" />
+          <button className="secondary" disabled={manualState === "loading"} onClick={searchBeer}>
+            {manualState === "loading" ? "Searching..." : "Search"}
+          </button>
+        </div>
+        {manualState === "error" ? <p className="form-error">Live search unavailable. Showing local fallback when possible.</p> : null}
+        {manualResults.length > 0 ? (
+          <div className="manual-results">
+            {manualResults.map((beer) => (
+              <button className="manual-result" key={beer.id} onClick={() => confirmBeer(beer)}>
+                <span><strong>{beer.name}</strong><small>{beer.brewery.name} · {beer.style}</small></span>
+                <em>Use</em>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div className="draft-beer-form">
+          <input className="text-input" value={draftBeer.name} onChange={(event) => setDraftBeer({ ...draftBeer, name: event.target.value })} placeholder="New Beer name" />
+          <input className="text-input" value={draftBeer.breweryName} onChange={(event) => setDraftBeer({ ...draftBeer, breweryName: event.target.value })} placeholder="Brewery" />
+          <select className="text-input" value={draftBeer.style} onChange={(event) => setDraftBeer({ ...draftBeer, style: event.target.value as BeerStyle })}>
+            {["IPA", "Double IPA", "Hazy IPA", "Pilsner", "Stout", "Sour", "Lager", "Porter", "Other"].map((style) => <option key={style} value={style}>{style}</option>)}
+          </select>
+          <input className="text-input" value={draftBeer.abv} onChange={(event) => setDraftBeer({ ...draftBeer, abv: event.target.value })} placeholder="ABV" inputMode="decimal" />
+          <button className="primary" disabled={!draftBeer.name || !draftBeer.breweryName || manualState === "loading"} onClick={createBeerDraft}>
+            {manualState === "loading" ? "Creating..." : "Create draft Beer"}
+          </button>
+        </div>
+      </div>
     </section>
   );
 }

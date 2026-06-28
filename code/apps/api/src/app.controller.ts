@@ -2,6 +2,8 @@ import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req } fro
 import { ApiBody, ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type {
   BeerMatchRequestDto,
+  CreateBeerRequestDto,
+  CreateBeerResponseDto,
   CreateCommentRequestDto,
   CreateCommentResponseDto,
   CreateReviewRequestDto,
@@ -104,6 +106,31 @@ export class AppController {
     };
   }
 
+  @ApiOperation({ summary: "Search existing Beer by name, brewery, or style" })
+  @Get("beers")
+  async searchBeers(@Query("query") query?: string) {
+    if (this.readService.isReady()) {
+      return {
+        items: await this.readService.searchBeers(query)
+      };
+    }
+
+    const normalizedQuery = query?.trim().toLowerCase();
+    const items = normalizedQuery
+      ? beers.filter((beer) => {
+          return (
+            beer.name.toLowerCase().includes(normalizedQuery) ||
+            beer.brewery.name.toLowerCase().includes(normalizedQuery) ||
+            beer.style.toLowerCase().includes(normalizedQuery)
+          );
+        })
+      : beers;
+
+    return {
+      items
+    };
+  }
+
   @ApiOperation({ summary: "Get Beer detail with public proof reviews" })
   @Get("beers/:beerId")
   async getBeerDetail(@Param("beerId") beerId: string) {
@@ -124,6 +151,66 @@ export class AppController {
       ...beerDetail,
       beer,
       proofReviews: []
+    };
+  }
+
+  @ApiOperation({ summary: "Create a Beer draft when AI and manual search cannot find a match" })
+  @ApiHeader({
+    name: "x-beerrank-profile-id",
+    required: false,
+    description: "Temporary MVP auth header. Used as the Beer draft creator."
+  })
+  @ApiBody({
+    schema: {
+      example: {
+        name: "Morning Haze IPA",
+        breweryName: "Cloudburst Brewing",
+        style: "IPA",
+        abv: 6.5,
+        imageUrl: "https://example.com/beer-photo.jpg"
+      }
+    }
+  })
+  @Post("beers")
+  async createBeer(
+    @Body() body: CreateBeerRequestDto,
+    @Req() request: RequestLike
+  ): Promise<CreateBeerResponseDto> {
+    const profileId = this.authService.resolveProfileId(request);
+
+    if (this.writeService.isReady()) {
+      return this.writeService.createBeer(body, profileId);
+    }
+
+    const brewery = {
+      id: `brewery-mock-${Date.now()}`,
+      name: body.breweryName,
+      country: undefined
+    };
+    const existingBeer = beers.find((beer) => {
+      return beer.name.toLowerCase() === body.name.toLowerCase() &&
+        beer.brewery.name.toLowerCase() === body.breweryName.toLowerCase();
+    });
+
+    if (existingBeer) {
+      return {
+        beer: existingBeer,
+        status: "confirmed",
+        created: false
+      };
+    }
+
+    return {
+      beer: {
+        id: `beer-mock-${Date.now()}`,
+        name: body.name,
+        brewery,
+        style: body.style,
+        abv: body.abv,
+        imageUrl: body.imageUrl
+      },
+      status: "needs_review",
+      created: true
     };
   }
 

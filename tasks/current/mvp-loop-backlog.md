@@ -31,7 +31,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L06 | Photo upload and storage | Node 8 | in_progress | Mock upload foundation is done; Supabase/object storage remains pending. |
 | L07 | AI matching contract hardening | Node 9 | done | Mock provider uses adapter contract; suggestions are auditable. |
 | L08 | Real AI vision/text matching | Node 9 | in_progress | Zeabur/OpenAI-compatible providers are implemented; live API-key verification remains pending. |
-| L09 | Manual beer search and create Beer | Node 8/9 | pending | User can search existing Beer or create `needs_review` Beer when AI fails. |
+| L09 | Manual beer search and create Beer | Node 8/9 | done | User can search existing Beer or create `needs_review` Beer when AI fails. |
 | L10 | Leaderboard aggregation | Node 8 | pending | Only eligible public reviews count; Beer Detail proof count matches ranking. |
 | L11 | Frontend form completion | Node 6/8 | pending | Review composer uses real inputs/API states instead of polished mock values. |
 | L12 | QA and release gate | Node 10/11 | pending | End-to-end public MVP flow passes on mobile and desktop. |
@@ -251,6 +251,25 @@ Acceptance criteria:
 - Pending UI/API loop: No-results path can create a Beer draft.
 - Done: API never auto-confirms Beer.
 - Pending live verification: Zeabur AI Hub key is configured in Zeabur and real image matching is smoke-tested.
+
+## L09 - Manual Beer Search And Create Beer
+
+Implemented:
+
+- `GET /api/beers?query=` searches Beer name, brewery name, and style.
+- `POST /api/beers` creates a Beer draft with `status=needs_review`.
+- Existing brewery rows are reused.
+- Existing same-brewery same-name Beer rows are returned instead of duplicated.
+- Frontend AI match screen includes manual search.
+- Frontend AI match screen can create a draft Beer and return it to the review composer.
+
+Acceptance criteria:
+
+- Done: User can search existing Beer when AI is low-confidence or returns no result.
+- Done: User can manually select an existing Beer.
+- Done: User can create a `needs_review` Beer draft.
+- Done: Created/selected Beer can be used as the review's confirmed Beer for the MVP flow.
+- Pending future moderation: `needs_review` Beer approval workflow.
 
 ## Recommended Next Item
 

@@ -144,6 +144,20 @@ export interface BeerMatchRequestDto {
   mode?: "high" | "low" | "none";
 }
 
+export interface CreateBeerRequestDto {
+  name: string;
+  breweryName: string;
+  style: BeerStyle;
+  abv?: number;
+  imageUrl?: string;
+}
+
+export interface CreateBeerResponseDto {
+  beer: BeerSummaryDto;
+  status: "confirmed" | "needs_review";
+  created: boolean;
+}
+
 export interface CreateReviewRequestDto {
   beerId: ID;
   photoUrls: string[];

@@ -3,7 +3,11 @@ import { randomUUID } from "node:crypto";
 import { DatabaseService } from "./database.service";
 import { ReadService } from "./read.service";
 import type {
+  BeerStyle,
+  BeerSummaryDto,
   CommentDto,
+  CreateBeerRequestDto,
+  CreateBeerResponseDto,
   CreateCommentRequestDto,
   CreateCommentResponseDto,
   CreateReviewRequestDto,
@@ -19,6 +23,86 @@ export class WriteService {
 
   isReady() {
     return this.database.isConfigured();
+  }
+
+  async createBeer(body: CreateBeerRequestDto, currentProfileId: string): Promise<CreateBeerResponseDto> {
+    this.validateBeer(body);
+
+    const breweryName = body.breweryName.trim();
+    const beerName = body.name.trim();
+    const breweryId = `brewery-${randomUUID()}`;
+    const beerId = `beer-${randomUUID()}`;
+    let resultBeerId = beerId;
+    let created = true;
+    let status: CreateBeerResponseDto["status"] = "needs_review";
+
+    await this.database.transaction(async (client) => {
+      const profile = await client.query("select id from profiles where id = $1", [currentProfileId]);
+      if (profile.rowCount === 0) {
+        throw new NotFoundException("Current profile not found");
+      }
+
+      const existingBrewery = await client.query<{ id: string }>(
+        "select id from breweries where lower(name) = lower($1)",
+        [breweryName]
+      );
+      const resolvedBreweryId = existingBrewery.rows[0]?.id ?? breweryId;
+
+      if (!existingBrewery.rows[0]) {
+        await client.query(
+          `
+            insert into breweries (id, name)
+            values ($1, $2)
+          `,
+          [resolvedBreweryId, breweryName]
+        );
+      }
+
+      const existingBeer = await client.query<{ id: string; status: CreateBeerResponseDto["status"] }>(
+        "select id, status from beers where brewery_id = $1 and lower(name) = lower($2)",
+        [resolvedBreweryId, beerName]
+      );
+
+      if (existingBeer.rows[0]) {
+        resultBeerId = existingBeer.rows[0].id;
+        status = existingBeer.rows[0].status;
+        created = false;
+        return;
+      }
+
+      await client.query(
+        `
+          insert into beers (
+            id,
+            brewery_id,
+            name,
+            style,
+            abv,
+            image_url,
+            status,
+            created_by_profile_id
+          )
+          values ($1, $2, $3, $4, $5, $6, 'needs_review', $7)
+        `,
+        [
+          resultBeerId,
+          resolvedBreweryId,
+          beerName,
+          body.style,
+          body.abv ?? null,
+          body.imageUrl?.trim() || null,
+          currentProfileId
+        ]
+      );
+    });
+
+    const beer = await this.getBeerSummary(resultBeerId);
+
+    return {
+      beer,
+      status,
+      created
+    };
   }
 
   async createReview(body: CreateReviewRequestDto, currentProfileId: string): Promise<CreateReviewResponseDto> {
@@ -172,6 +256,24 @@ export class WriteService {
     }
   }
 
+  private validateBeer(body: CreateBeerRequestDto) {
+    if (!body.name?.trim()) {
+      throw new BadRequestException("name is required");
+    }
+
+    if (!body.breweryName?.trim()) {
+      throw new BadRequestException("breweryName is required");
+    }
+
+    if (!body.style) {
+      throw new BadRequestException("style is required");
+    }
+
+    if (body.abv !== undefined && (body.abv < 0 || body.abv > 30)) {
+      throw new BadRequestException("abv must be between 0 and 30");
+    }
+  }
+
   private validateComment(body: CreateCommentRequestDto) {
     if (!body.body?.trim()) {
       throw new BadRequestException("body is required");
@@ -195,5 +297,52 @@ export class WriteService {
     }
 
     return undefined;
+  }
+
+  private async getBeerSummary(beerId: string): Promise<BeerSummaryDto> {
+    const result = await this.database.query<{
+      beer_id: string;
+      beer_name: string;
+      beer_style: BeerStyle;
+      beer_abv: string | null;
+      beer_image_url: string | null;
+      brewery_id: string;
+      brewery_name: string;
+      brewery_country: string | null;
+    }>(
+      `
+        select
+          b.id as beer_id,
+          b.name as beer_name,
+          b.style as beer_style,
+          b.abv as beer_abv,
+          b.image_url as beer_image_url,
+          br.id as brewery_id,
+          br.name as brewery_name,
+          br.country as brewery_country
+        from beers b
+        join breweries br on br.id = b.brewery_id
+        where b.id = $1
+      `,
+      [beerId]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundException("Beer not found");
+    }
+
+    return {
+      id: row.beer_id,
+      name: row.beer_name,
+      brewery: {
+        id: row.brewery_id,
+        name: row.brewery_name,
+        country: row.brewery_country ?? undefined
+      },
+      style: row.beer_style,
+      abv: row.beer_abv === null ? undefined : Number(row.beer_abv),
+      imageUrl: row.beer_image_url ?? undefined
+    };
   }
 }
