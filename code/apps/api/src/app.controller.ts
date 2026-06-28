@@ -18,13 +18,15 @@ import {
 } from "./mock-data";
 import { DatabaseService } from "./database.service";
 import { ReadService } from "./read.service";
+import { WriteService } from "./write.service";
 
 @ApiTags("MVP Mock API")
 @Controller()
 export class AppController {
   constructor(
     private readonly database: DatabaseService,
-    private readonly readService: ReadService
+    private readonly readService: ReadService,
+    private readonly writeService: WriteService
   ) {}
 
   @ApiOperation({ summary: "Check mock API and database health" })
@@ -143,7 +145,7 @@ export class AppController {
     return highConfidenceMatch;
   }
 
-  @ApiOperation({ summary: "Publish a mock review post" })
+  @ApiOperation({ summary: "Publish a review post" })
   @ApiBody({
     schema: {
       example: {
@@ -156,7 +158,11 @@ export class AppController {
     }
   })
   @Post("reviews")
-  createReview(@Body() body: CreateReviewRequestDto): CreateReviewResponseDto {
+  async createReview(@Body() body: CreateReviewRequestDto): Promise<CreateReviewResponseDto> {
+    if (this.writeService.isReady()) {
+      return this.writeService.createReview(body);
+    }
+
     const beer = beers.find((item) => item.id === body.beerId);
     if (!beer) {
       throw new NotFoundException("Beer not found");

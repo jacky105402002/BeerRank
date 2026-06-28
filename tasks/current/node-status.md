@@ -6,6 +6,6 @@
 | 002 | done | 2026-06-27 | Flow, architecture, data alignment, and API boundary drafted. |
 | 003 | done | 2026-06-27 | UIUX prototype and Figma flow created. |
 | 004 | done | 2026-06-27 | Web/API scaffold created and deployed. |
-| 005 | in_progress | 2026-06-28 | PostgreSQL health connected; L01 schema and seed done; L02 read endpoints use DB; write persistence pending. |
+| 005 | in_progress | 2026-06-28 | PostgreSQL health connected; L01 schema and seed done; L02 reads use DB; L03 review publish writes DB. |
 | 006 | in_progress | 2026-06-28 | Frontend mock flow deployed; real form/storage/auth pending. |
 | 007 | pending | 2026-06-28 | QA, review, docs, and release after persistence/auth/AI. |

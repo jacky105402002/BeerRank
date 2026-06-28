@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from "@nestjs/common";
-import { Pool, QueryResultRow } from "pg";
+import { Pool, PoolClient, QueryResultRow } from "pg";
 
 type DatabaseHealth = {
   configured: boolean;
@@ -60,6 +60,25 @@ export class DatabaseService implements OnModuleDestroy {
     }
 
     return this.pool.query<T>(text, params);
+  }
+
+  async transaction<T>(callback: (client: PoolClient) => Promise<T>) {
+    if (!this.pool) {
+      throw new Error("DATABASE_URL is not configured");
+    }
+
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+      const result = await callback(client);
+      await client.query("commit");
+      return result;
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async onModuleDestroy() {

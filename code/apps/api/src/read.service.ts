@@ -141,6 +141,60 @@ export class ReadService {
     return result.rows.map((row) => this.mapFeedPost(row));
   }
 
+  async getReviewPost(reviewId: string): Promise<FeedPostDto> {
+    const result = await this.database.query<FeedRow>(`
+      select
+        r.id as review_id,
+        p.id as author_id,
+        p.display_name as author_display_name,
+        p.avatar_url as author_avatar_url,
+        p.bio as author_bio,
+        p.top_style as author_top_style,
+        count(distinct author_reviews.id)::int as author_review_count,
+        avg(author_reviews.rating)::numeric(3, 2) as author_average_given_rating,
+        b.id as beer_id,
+        b.name as beer_name,
+        b.style as beer_style,
+        b.abv as beer_abv,
+        b.image_url as beer_image_url,
+        br.id as brewery_id,
+        br.name as brewery_name,
+        br.country as brewery_country,
+        primary_photo.url as primary_photo_url,
+        photo_list.photo_urls,
+        r.rating,
+        r.review_text,
+        r.visibility,
+        r.created_at,
+        count(distinct likes.id)::int as like_count,
+        count(distinct c.id)::int as comment_count,
+        (er.id is not null) as is_ranking_eligible
+      from reviews r
+      join profiles p on p.id = r.author_profile_id
+      join beers b on b.id = r.beer_id
+      join breweries br on br.id = b.brewery_id
+      left join reviews author_reviews on author_reviews.author_profile_id = p.id and author_reviews.status = 'published'
+      left join review_photos primary_photo on primary_photo.review_id = r.id and primary_photo.sort_order = 1
+      left join lateral (
+        select array_agg(rp.url order by rp.sort_order) as photo_urls
+        from review_photos rp
+        where rp.review_id = r.id
+      ) photo_list on true
+      left join post_reactions likes on likes.review_id = r.id and likes.type = 'like'
+      left join comments c on c.review_id = r.id
+      left join eligible_reviews er on er.id = r.id
+      where r.id = $1
+      group by r.id, p.id, b.id, br.id, primary_photo.url, photo_list.photo_urls, er.id
+    `, [reviewId]);
+
+    const row = result.rows[0];
+    if (!row) {
+      throw new NotFoundException("Review not found");
+    }
+
+    return this.mapFeedPost(row);
+  }
+
   async getLeaderboard(style?: string): Promise<LeaderboardRowDto[]> {
     const normalizedStyle = style?.toLowerCase();
     const params: string[] = [];

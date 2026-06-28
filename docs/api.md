@@ -93,4 +93,12 @@ As of L02, these endpoints read from PostgreSQL when `DATABASE_URL` is configure
 - `GET /beers/:beerId`
 - `GET /posts/:postId/comments`
 
-`POST /reviews` is still mock-only until L03.
+`POST /reviews` writes to PostgreSQL when `DATABASE_URL` is configured, with mock fallback for local development without DB.
+
+L03 rules:
+
+- API currently uses mock current profile `user-jordan` until Auth is implemented.
+- A review can include 1 to 3 `photoUrls`.
+- Photo `sort_order = 1` is the primary image.
+- Public, published, confirmed reviews with at least one photo become leaderboard eligible.
+- Private reviews are persisted but do not enter `eligible_reviews`.

@@ -25,8 +25,8 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | --- | --- | --- | --- | --- |
 | L01 | DB schema and migration | Node 8 | done | Tables and seed data exist; migration is repeatable. |
 | L02 | API reads from PostgreSQL | Node 8 | done | Feed, leaderboard, beer detail, comments read seeded DB data. |
-| L03 | Review publish persistence | Node 8 | next | `POST /api/reviews` writes review/photos and survives refresh. |
-| L04 | Comment persistence | Node 8 | pending | Comments and one-level replies are stored and returned from DB. |
+| L03 | Review publish persistence | Node 8 | done | `POST /api/reviews` writes review/photos and survives refresh. |
+| L04 | Comment persistence | Node 8 | next | Comments and one-level replies are stored and returned from DB. |
 | L05 | Auth foundation | Node 8 | pending | Google login identifies the current user; mock user removed from protected writes. |
 | L06 | Photo upload and storage | Node 8 | pending | Up to 3 photos upload; first photo is primary; public URLs render. |
 | L07 | AI matching contract hardening | Node 9 | pending | Mock and real providers share one adapter contract; suggestions are auditable. |
@@ -116,10 +116,19 @@ Scope:
 
 Acceptance criteria:
 
-- Publishing a review changes `/api/feed`.
-- Public eligible reviews appear in Beer Detail proof feed.
-- Private reviews do not affect leaderboard.
-- Refreshing the app keeps the published review.
+- Done locally against Zeabur DB: publishing a public review changes `/api/feed`.
+- Done locally against Zeabur DB: public eligible reviews appear in Beer Detail proof feed.
+- Done locally against Zeabur DB: private reviews return `leaderboardEligible=false` and do not affect `eligible_reviews`.
+- Done locally against Zeabur DB: refreshing API responses keeps the published review.
+
+Verification:
+
+```text
+POST /api/reviews public -> 201
+GET /api/feed -> includes created review
+GET /api/beers/beer-citra-ipa -> includes created proof review
+POST /api/reviews private -> 201 with leaderboardEligible=false
+```
 
 ## L04 - Comment Persistence
 
