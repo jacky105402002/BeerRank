@@ -23,8 +23,8 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 
 | ID | Loop Item | Node | Status | Exit Gate |
 | --- | --- | --- | --- | --- |
-| L01 | DB schema and migration | Node 8 | next | Tables and seed data exist; migration is repeatable. |
-| L02 | API reads from PostgreSQL | Node 8 | pending | Feed, leaderboard, beer detail, comments read seeded DB data. |
+| L01 | DB schema and migration | Node 8 | done | Tables and seed data exist; migration is repeatable. |
+| L02 | API reads from PostgreSQL | Node 8 | next | Feed, leaderboard, beer detail, comments read seeded DB data. |
 | L03 | Review publish persistence | Node 8 | pending | `POST /api/reviews` writes review/photos and survives refresh. |
 | L04 | Comment persistence | Node 8 | pending | Comments and one-level replies are stored and returned from DB. |
 | L05 | Auth foundation | Node 8 | pending | Google login identifies the current user; mock user removed from protected writes. |
@@ -52,10 +52,24 @@ Scope:
 
 Acceptance criteria:
 
-- Migration can run safely more than once.
-- Seed data can recreate the current demo feed, leaderboard, and beer detail.
-- Ranking eligibility fields exist in DB.
-- No real DB password is committed.
+- Done: migration can run safely more than once.
+- Done: seed data recreates the current demo feed foundation.
+- Done: ranking eligibility fields and `eligible_reviews` view exist in DB.
+- Done: no real DB password is committed.
+
+Verification:
+
+```text
+profiles=3
+breweries=5
+beers=5
+reviews=2
+review_photos=3
+comments=2
+post_reactions=3
+beer_match_suggestions=1
+schema_migrations=2
+```
 
 Loopback triggers:
 
