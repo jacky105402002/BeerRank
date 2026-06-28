@@ -32,7 +32,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L07 | AI matching contract hardening | Node 9 | done | Mock provider uses adapter contract; suggestions are auditable. |
 | L08 | Real AI vision/text matching | Node 9 | in_progress | Zeabur/OpenAI-compatible providers are implemented; live API-key verification remains pending. |
 | L09 | Manual beer search and create Beer | Node 8/9 | done | User can search existing Beer or create `needs_review` Beer when AI fails. |
-| L10 | Leaderboard aggregation | Node 8 | pending | Only eligible public reviews count; Beer Detail proof count matches ranking. |
+| L10 | Leaderboard aggregation | Node 8 | done | Only eligible public reviews count; Beer Detail proof count matches ranking. |
 | L11 | Frontend form completion | Node 6/8 | pending | Review composer uses real inputs/API states instead of polished mock values. |
 | L12 | QA and release gate | Node 10/11 | pending | End-to-end public MVP flow passes on mobile and desktop. |
 
@@ -271,14 +271,42 @@ Acceptance criteria:
 - Done: Created/selected Beer can be used as the review's confirmed Beer for the MVP flow.
 - Pending future moderation: `needs_review` Beer approval workflow.
 
+## L10 - Leaderboard Aggregation
+
+Implemented:
+
+- `eligible_reviews` now requires confirmed Beer (`beers.status = 'confirmed'`).
+- `needs_review` Beer reviews can exist, but they do not enter leaderboard aggregation.
+- `beer_leaderboard` aggregates likes per review before ranking, preventing like joins from duplicating review counts.
+- Ranking score remains `average_rating * log(verified_review_count + 1) + like_count * 0.05`.
+- Beer Detail proof reviews and leaderboard stats read from the same eligibility rule.
+
+Acceptance criteria:
+
+- Done on Zeabur DB: public, published, photo-backed reviews for confirmed Beer enter `eligible_reviews`.
+- Done on Zeabur DB: reviews for `needs_review` Beer do not enter `eligible_reviews`.
+- Done on Zeabur DB: multiple likes on one review do not inflate `verified_review_count`.
+- Done on deployed API: `/api/leaderboard` and `/api/beers/beer-citra-ipa` return matching verified proof counts.
+
+Verification:
+
+```text
+npm run build (api) -> pass
+npm run build (web) -> pass
+npm run db:migrate -> applied 003_leaderboard_aggregation
+temporary DB probe -> confirmed Beer ranked, needs_review Beer excluded, like count = 2, review count = 1
+GET /api/leaderboard -> 200
+GET /api/beers/beer-citra-ipa -> 200, verifiedReviewCount=2, proofReviews.length=2
+```
+
 ## Recommended Next Item
 
 Start with:
 
 ```text
-L01 - DB Schema And Migration
+L11 - Frontend Form Completion
 ```
 
 Reason:
 
-AI matching, review publish, leaderboard, comments, and profile all depend on canonical Beer/review/photo tables. Without schema and seed data, AI suggestions and user confirmations have nowhere trustworthy to persist.
+The API, DB, leaderboard, comments, AI matching, and manual Beer fallback now have durable foundations. The next loop should replace the polished mock composer values with real frontend form states and end-to-end publish behavior.

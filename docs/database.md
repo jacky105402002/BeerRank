@@ -1,6 +1,6 @@
 # Database Notes
 
-Status: L01 schema and migration applied to Zeabur PostgreSQL
+Status: L10 leaderboard aggregation applied to Zeabur PostgreSQL
 
 Current schema sources:
 
@@ -24,6 +24,15 @@ Implemented L01 entities:
 Important MVP ranking rule:
 
 - only public, published, confirmed reviews with photos and ratings count toward leaderboard scoring.
+- the Beer itself must also be `status = 'confirmed'`.
+- `needs_review` Beer reviews can be published and viewed, but they do not enter the leaderboard until the Beer is approved.
+- leaderboard likes are aggregated per review before Beer ranking is calculated, so likes cannot duplicate review counts.
+
+Leaderboard score:
+
+```text
+average_rating * log(verified_review_count + 1) + like_count * 0.05
+```
 
 Migration commands:
 
@@ -43,6 +52,7 @@ Migration files:
 
 - `code/apps/api/migrations/001_initial_schema.sql`
 - `code/apps/api/migrations/002_seed_demo_data.sql`
+- `code/apps/api/migrations/003_leaderboard_aggregation.sql`
 
 Latest L01 verification:
 

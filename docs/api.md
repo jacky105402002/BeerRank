@@ -300,16 +300,18 @@ Current verification status:
 - Zeabur AI Hub provider compiles and safely fails when `AI_API_KEY` is missing.
 - Live AI matching still needs a real API key in the API service environment.
 
-## MVP Ranking Rule In API
+## MVP Ranking Rule
 
-`POST /reviews` marks a review as leaderboard eligible only when:
+Leaderboard eligibility is computed by the PostgreSQL `eligible_reviews` view. A review counts only when:
 
-- visibility is `public`
+- review visibility is `public`
+- review status is `published`
+- Beer confirmation status is `confirmed`
+- Beer status is `confirmed`
 - at least one photo exists
-- rating is greater than zero
-- the submitted `beerId` resolves to a known Beer
+- rating exists
 
-This is still mock logic. Supabase integration will replace storage and persistence later, but the response shape should remain stable unless the frontend flow changes.
+The `beer_leaderboard` view aggregates eligible reviews by Beer, counts likes per review, and calculates the rank score. Reviews attached to `needs_review` Beer can still appear in normal product surfaces, but they do not affect leaderboard ranking.
 
 ## Database Health
 
@@ -346,7 +348,7 @@ L03/L05 rules:
 - API resolves the current profile through the L05 auth foundation.
 - A review can include 1 to 3 `photoUrls`.
 - Photo `sort_order = 1` is the primary image.
-- Public, published, confirmed reviews with at least one photo become leaderboard eligible.
+- Public, published, confirmed reviews for confirmed Beer with at least one photo become leaderboard eligible.
 - Private reviews are persisted but do not enter `eligible_reviews`.
 
 ## Comment Persistence
