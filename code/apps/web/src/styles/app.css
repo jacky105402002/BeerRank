@@ -405,6 +405,24 @@ small {
   font-size: 12px;
 }
 
+.photo-actions {
+  position: absolute;
+  inset: auto 8px 8px 8px;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.photo-actions button {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.92);
+  color: #7a4a1b;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 6px 8px;
+}
+
 .panel {
   padding: 16px;
   margin: 14px 0;
@@ -428,6 +446,47 @@ small {
 
 .text-input {
   width: 100%;
+  color: #241c16;
+}
+
+.note-input {
+  resize: vertical;
+  min-height: 112px;
+  font: inherit;
+  line-height: 1.5;
+}
+
+.rating-control {
+  display: grid;
+  gap: 12px;
+}
+
+.rating-control input[type="range"] {
+  width: 100%;
+  accent-color: #df740a;
+}
+
+.big-stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.big-stars button {
+  border: 0;
+  background: transparent;
+  color: #d7c2ad;
+  font-size: 24px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.big-stars button.filled {
+  color: #df740a;
+}
+
+.big-stars b {
+  margin-left: 8px;
   color: #241c16;
 }
 

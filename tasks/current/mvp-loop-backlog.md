@@ -33,7 +33,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L08 | Real AI vision/text matching | Node 9 | in_progress | Zeabur/OpenAI-compatible providers are implemented; live API-key verification remains pending. |
 | L09 | Manual beer search and create Beer | Node 8/9 | done | User can search existing Beer or create `needs_review` Beer when AI fails. |
 | L10 | Leaderboard aggregation | Node 8 | done | Only eligible public reviews count; Beer Detail proof count matches ranking. |
-| L11 | Frontend form completion | Node 6/8 | pending | Review composer uses real inputs/API states instead of polished mock values. |
+| L11 | Frontend form completion | Node 6/8 | done | Review composer uses real inputs/API states instead of polished mock values. |
 | L12 | QA and release gate | Node 10/11 | pending | End-to-end public MVP flow passes on mobile and desktop. |
 
 ## L01 - DB Schema And Migration
@@ -299,14 +299,44 @@ GET /api/leaderboard -> 200
 GET /api/beers/beer-citra-ipa -> 200, verifiedReviewCount=2, proofReviews.length=2
 ```
 
+## L11 - Frontend Form Completion
+
+Implemented:
+
+- Review draft now stores real `reviewText` instead of publishing a fixed mock note.
+- Photo upload supports adding up to 3 photos, removing photos, and moving a secondary photo to primary.
+- Publish button requires photo, confirmed Beer, rating, and a non-empty tasting note.
+- Rating can be changed through star buttons or a range control.
+- Successful publish resets the draft and links the success action to the published Beer detail.
+- AI Match is treated as part of the review flow: without uploaded photos, the page asks the user to return to the review form instead of exposing standalone AI/manual actions.
+- Manual search/create Beer remains available after photos exist.
+
+Acceptance criteria:
+
+- Done locally: Review composer no longer uses fixed mock review text.
+- Done locally: User can edit rating and tasting note before publish.
+- Done locally: User can manage the 1 to 3 review photos before publish.
+- Done locally: AI match is gated by uploaded photo state.
+- Pending QA: Full browser publish flow with a user-selected image file should be tested manually before public release.
+
+Verification:
+
+```text
+npm run build (web) -> pass
+npm run build (api) -> pass
+GET http://localhost:6677/review/new -> 200
+browser smoke: review page has textarea, rating range, upload label, publish disabled until ready
+browser smoke: /review/new/match without photos shows guard and hides manual Beer panel
+```
+
 ## Recommended Next Item
 
 Start with:
 
 ```text
-L11 - Frontend Form Completion
+L12 - QA and release gate
 ```
 
 Reason:
 
-The API, DB, leaderboard, comments, AI matching, and manual Beer fallback now have durable foundations. The next loop should replace the polished mock composer values with real frontend form states and end-to-end publish behavior.
+The MVP now has API persistence, DB leaderboard rules, AI matching, manual Beer fallback, and a real review composer. The next loop should verify the complete user path on local and Zeabur before cutting another deployment checkpoint.

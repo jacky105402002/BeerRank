@@ -1,4 +1,4 @@
-import { NavLink, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { type ChangeEvent, useMemo, useState } from "react";
 import type { BeerStyle, BeerSummaryDto, Locale, ReviewVisibility, UploadReviewPhotoInputDto } from "../types";
 import {
@@ -22,7 +22,15 @@ type DraftState = {
   photoUrls: string[];
   rating: number;
   visibility: ReviewVisibility;
+  reviewText: string;
   confirmedBeer?: BeerSummaryDto;
+};
+
+const emptyDraft: DraftState = {
+  photoUrls: [],
+  rating: 4,
+  visibility: "public",
+  reviewText: ""
 };
 
 type IconName = "heart" | "comment" | "bookmark" | "bell" | "feed" | "ranking" | "plus" | "ai" | "profile";
@@ -116,11 +124,7 @@ export function App() {
   const t = dictionaries[locale];
   const [loginOpen, setLoginOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null);
-  const [draft, setDraft] = useState<DraftState>({
-    photoUrls: [],
-    rating: 4,
-    visibility: "public"
-  });
+  const [draft, setDraft] = useState<DraftState>(emptyDraft);
 
   return (
     <div className="app-bg">
@@ -253,13 +257,16 @@ function ReviewPage({
   setDraft: (draft: DraftState | ((current: DraftState) => DraftState)) => void;
 }) {
   const navigate = useNavigate();
-  const isReady = draft.photoUrls.length > 0 && draft.rating > 0 && draft.confirmedBeer;
+  const location = useLocation();
   const query = new URLSearchParams(location.search);
+  const isReady = draft.photoUrls.length > 0 && draft.rating > 0 && Boolean(draft.confirmedBeer) && draft.reviewText.trim().length >= 3;
   const [uploadState, setUploadState] = useState<"idle" | "uploading" | "error">("idle");
   const [publishState, setPublishState] = useState<"idle" | "publishing" | "error">("idle");
+  const [lastPublishedBeerId, setLastPublishedBeerId] = useState<string>("beer-citra-ipa");
 
   async function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
-    const selectedFiles = Array.from(event.target.files ?? []).slice(0, 3);
+    const remainingSlots = Math.max(0, 3 - draft.photoUrls.length);
+    const selectedFiles = Array.from(event.target.files ?? []).slice(0, remainingSlots);
     if (selectedFiles.length === 0) {
       return;
     }
@@ -270,7 +277,10 @@ function ReviewPage({
       const response = await beerRankApi.uploadReviewPhotos({ files });
       setDraft((current) => ({
         ...current,
-        photoUrls: response.photos.sort((a, b) => a.sortOrder - b.sortOrder).map((photo) => photo.url)
+        photoUrls: [
+          ...current.photoUrls,
+          ...response.photos.sort((a, b) => a.sortOrder - b.sortOrder).map((photo) => photo.url)
+        ].slice(0, 3)
       }));
       setUploadState("idle");
     } catch {
@@ -280,8 +290,26 @@ function ReviewPage({
     }
   }
 
+  function removePhoto(index: number) {
+    setDraft((current) => ({
+      ...current,
+      photoUrls: current.photoUrls.filter((_, photoIndex) => photoIndex !== index)
+    }));
+  }
+
+  function setPrimaryPhoto(index: number) {
+    setDraft((current) => {
+      const photoUrls = [...current.photoUrls];
+      const [selected] = photoUrls.splice(index, 1);
+      return {
+        ...current,
+        photoUrls: selected ? [selected, ...photoUrls] : current.photoUrls
+      };
+    });
+  }
+
   async function publishReview() {
-    if (!draft.confirmedBeer || draft.photoUrls.length === 0) {
+    if (!isReady || !draft.confirmedBeer) {
       return;
     }
 
@@ -291,9 +319,11 @@ function ReviewPage({
         beerId: draft.confirmedBeer.id,
         photoUrls: draft.photoUrls,
         rating: draft.rating,
-        reviewText: "Citrus aroma, crisp body, and a clean bitter finish.",
+        reviewText: draft.reviewText.trim(),
         visibility: draft.visibility
       });
+      setLastPublishedBeerId(draft.confirmedBeer.id);
+      setDraft(emptyDraft);
       setPublishState("idle");
       navigate("/review/new?published=true");
     } catch {
@@ -317,14 +347,18 @@ function ReviewPage({
           <div className={index === 0 ? "photo primary" : "photo"} key={url}>
             <img src={url} alt="" />
             <span>{index === 0 ? "主要照片" : index + 1}</span>
+            <div className="photo-actions">
+              {index > 0 ? <button type="button" onClick={() => setPrimaryPhoto(index)}>設為主圖</button> : null}
+              <button type="button" onClick={() => removePhoto(index)}>移除</button>
+            </div>
           </div>
         ))}
-        {draft.photoUrls.length < 3 ? <div className="photo add-photo">+ 新增</div> : null}
+        {draft.photoUrls.length < 3 ? <label className="photo add-photo" htmlFor="review-photo-input">+ 新增</label> : null}
       </div>
       <label className="secondary upload-trigger" htmlFor="review-photo-input">
-        {uploadState === "uploading" ? "Uploading photos..." : "Choose photos"}
+        {uploadState === "uploading" ? "照片上傳中..." : "選擇照片"}
       </label>
-      {uploadState === "error" ? <p className="form-error">Photo upload failed. Use JPG, PNG, or WebP, up to 3 photos.</p> : null}
+      {uploadState === "error" ? <p className="form-error">照片上傳失敗，請使用 JPG、PNG 或 WebP，最多 3 張。</p> : null}
       <div className="panel">
         <label>{t.review.visibility}</label>
         <div className="segmented">
@@ -335,27 +369,62 @@ function ReviewPage({
       </div>
       <div className="panel">
         <label>{t.review.rating}</label>
-        <div className="big-stars">★★★★☆ <b>{draft.rating.toFixed(1)}</b></div>
+        <div className="rating-control">
+          <div className="big-stars" aria-label={`${draft.rating.toFixed(1)} stars`}>
+            {"★★★★★".split("").map((star, index) => (
+              <button
+                key={index}
+                type="button"
+                className={index + 1 <= Math.round(draft.rating) ? "filled" : ""}
+                onClick={() => setDraft({ ...draft, rating: index + 1 })}
+              >
+                {star}
+              </button>
+            ))}
+            <b>{draft.rating.toFixed(1)}</b>
+          </div>
+          <input
+            type="range"
+            min="1"
+            max="5"
+            step="0.5"
+            value={draft.rating}
+            onChange={(event) => setDraft({ ...draft, rating: Number(event.target.value) })}
+          />
+        </div>
       </div>
       <div className="panel">
         <label>{t.review.beer}</label>
-        {draft.confirmedBeer ? <div className="confirmed">已確認：{draft.confirmedBeer.name}</div> : <p className="muted">尚未確認 Beer。</p>}
+        {draft.confirmedBeer ? (
+          <div className="confirmed">
+            <strong>{draft.confirmedBeer.name}</strong>
+            <span>{draft.confirmedBeer.brewery.name} · {draft.confirmedBeer.style}</span>
+          </div>
+        ) : <p className="muted">尚未確認 Beer。</p>}
         <button className="secondary" onClick={() => navigate("/review/new/match")}>{t.review.confirmAi}</button>
       </div>
       <div className="panel">
         <label>{t.review.note}</label>
-        <p className="mock-input">柑橘香氣明顯，苦韻乾淨，尾段收得很舒服。</p>
+        <textarea
+          className="text-input note-input"
+          value={draft.reviewText}
+          onChange={(event) => setDraft({ ...draft, reviewText: event.target.value })}
+          placeholder="例如：柑橘香氣明顯，苦韻乾淨，尾段收得很舒服。"
+          rows={5}
+          maxLength={500}
+        />
+        <small>{draft.reviewText.trim().length}/500</small>
       </div>
       <button className="primary" disabled={!isReady || publishState === "publishing"} onClick={publishReview}>
-        {publishState === "publishing" ? "Publishing..." : t.review.publish}
+        {publishState === "publishing" ? "發布中..." : t.review.publish}
       </button>
-      {publishState === "error" ? <p className="form-error">Publishing failed. Please try again.</p> : null}
-      {query.has("published") ? <PublishSuccess t={t} /> : null}
+      {publishState === "error" ? <p className="form-error">發布失敗，請稍後再試。</p> : null}
+      {query.has("published") ? <PublishSuccess t={t} beerId={lastPublishedBeerId} /> : null}
     </section>
   );
 }
 
-function PublishSuccess({ t }: { t: T }) {
+function PublishSuccess({ t, beerId }: { t: T; beerId: string }) {
   const navigate = useNavigate();
   return (
     <div className="success-card">
@@ -363,7 +432,7 @@ function PublishSuccess({ t }: { t: T }) {
       <h2>{t.review.successTitle}</h2>
       <p>這則公開酒評已具備照片、評分與已確認 Beer，會納入排行榜計算。</p>
       <button className="primary" onClick={() => navigate("/feed")}>{t.common.viewFeed}</button>
-      <button className="secondary" onClick={() => navigate("/beers/beer-citra-ipa")}>{t.common.beerDetail}</button>
+      <button className="secondary" onClick={() => navigate(`/beers/${beerId}`)}>{t.common.beerDetail}</button>
     </div>
   );
 }
@@ -392,13 +461,19 @@ function MatchPage({
   });
   const matchMode = mode === "low" ? "low" : mode === "none" ? "none" : "high";
   const fallbackMatch = mode === "high" ? highConfidenceMatch : lowConfidenceMatch;
+  const canRunMatch = draft.photoUrls.length > 0;
   const { data: match } = useApiResource(
-    () => beerRankApi.matchBeer({ photoUrls: draft.photoUrls, locale, mode: matchMode }),
+    () => canRunMatch
+      ? beerRankApi.matchBeer({ photoUrls: draft.photoUrls, locale, mode: matchMode })
+      : Promise.resolve({ ...fallbackMatch, candidates: [] }),
     fallbackMatch,
-    [draft.photoUrls.join("|"), locale, matchMode]
+    [canRunMatch, draft.photoUrls.join("|"), locale, matchMode]
   );
   const candidate = match.candidates[0];
-  function confirmBeer(beer = candidate.beer) {
+  function confirmBeer(beer?: BeerSummaryDto) {
+    if (!beer) {
+      return;
+    }
     setDraft((current) => ({ ...current, confirmedBeer: beer }));
     navigate("/review/new");
   }
@@ -440,12 +515,19 @@ function MatchPage({
     <section className="page">
       <h1>{t.ai.title}</h1>
       <p className="muted">這一步會在你上傳照片並填寫酒評後，用來確認 Beer 是否匹配。</p>
+      {!canRunMatch ? (
+        <div className="panel hero-panel">
+          <h2>需要先上傳照片</h2>
+          <p className="muted">AI 會根據主要照片與你填寫的資訊比對 Beer。請先回到新增酒評，上傳至少一張照片。</p>
+          <button className="primary" onClick={() => navigate("/review/new")}>{t.common.back}</button>
+        </div>
+      ) : null}
       <div className="tabs">
         <button className={mode === "high" ? "active" : ""} onClick={() => setMode("high")}>{t.ai.high}</button>
         <button className={mode === "low" ? "active" : ""} onClick={() => setMode("low")}>{t.ai.low}</button>
         <button className={mode === "none" ? "active" : ""} onClick={() => setMode("none")}>{t.ai.noResult}</button>
       </div>
-      {mode === "none" ? (
+      {!canRunMatch ? null : mode === "none" ? (
         <div className="panel hero-panel">
           <h2>{t.ai.noResult}</h2>
           <p className="muted">可以換一張照片、手動搜尋，或建立新的 Beer 紀錄。</p>
@@ -453,12 +535,9 @@ function MatchPage({
           <button className="secondary" onClick={() => navigate("/review/new")}>{t.common.back}</button>
         </div>
       ) : mode === "create" ? (
-        <div className="panel">
+        <div className="panel hero-panel">
           <h2>{t.ai.createBeer}</h2>
-          <p className="mock-input">Morning Haze IPA</p>
-          <p className="mock-input">Cloudburst Brewing</p>
-          <p className="mock-input">IPA · 6.5%（選填）</p>
-          <button className="primary" onClick={() => confirmBeer(beers[0])}>建立並確認</button>
+          <p className="muted">請在下方填寫 Beer 名稱與酒廠，建立後這則酒評會先連到一筆待確認 Beer。</p>
         </div>
       ) : candidate ? (
         <div className="match-card">
@@ -470,47 +549,47 @@ function MatchPage({
             <ul>
               {candidate.reasons.map((reason) => <li key={reason.label}>{reason.label}</li>)}
             </ul>
-            <button className="primary" onClick={() => confirmBeer()}>{t.ai.useBeer}</button>
+            <button className="primary" onClick={() => confirmBeer(candidate.beer)}>{t.ai.useBeer}</button>
           </div>
         </div>
       ) : (
         <div className="panel hero-panel">
-          <h2>No confident match</h2>
-          <p className="muted">Try manual search below, or create a draft Beer if this one is not in the catalog yet.</p>
+          <h2>沒有足夠明確的匹配</h2>
+          <p className="muted">請用下方搜尋既有 Beer，或建立一筆新的 Beer 草稿。</p>
         </div>
       )}
-      <div className="panel manual-panel">
-        <h2>Manual Beer match</h2>
-        <p className="muted">Search the catalog when AI is unsure. If it is not listed yet, create a draft Beer for this review.</p>
+      {canRunMatch ? <div className="panel manual-panel">
+        <h2>手動確認 Beer</h2>
+        <p className="muted">AI 不確定時，先搜尋既有 Beer；找不到再建立待確認 Beer。</p>
         <div className="inline-search">
-          <input className="text-input" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Beer, brewery, or style" />
+          <input className="text-input" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Beer、酒廠或風格" />
           <button className="secondary" disabled={manualState === "loading"} onClick={searchBeer}>
-            {manualState === "loading" ? "Searching..." : "Search"}
+            {manualState === "loading" ? "搜尋中..." : "搜尋"}
           </button>
         </div>
-        {manualState === "error" ? <p className="form-error">Live search unavailable. Showing local fallback when possible.</p> : null}
+        {manualState === "error" ? <p className="form-error">即時搜尋暫時無法使用，已改用本機示範資料。</p> : null}
         {manualResults.length > 0 ? (
           <div className="manual-results">
             {manualResults.map((beer) => (
               <button className="manual-result" key={beer.id} onClick={() => confirmBeer(beer)}>
                 <span><strong>{beer.name}</strong><small>{beer.brewery.name} · {beer.style}</small></span>
-                <em>Use</em>
+                <em>使用</em>
               </button>
             ))}
           </div>
         ) : null}
         <div className="draft-beer-form">
-          <input className="text-input" value={draftBeer.name} onChange={(event) => setDraftBeer({ ...draftBeer, name: event.target.value })} placeholder="New Beer name" />
-          <input className="text-input" value={draftBeer.breweryName} onChange={(event) => setDraftBeer({ ...draftBeer, breweryName: event.target.value })} placeholder="Brewery" />
+          <input className="text-input" value={draftBeer.name} onChange={(event) => setDraftBeer({ ...draftBeer, name: event.target.value })} placeholder="新 Beer 名稱" />
+          <input className="text-input" value={draftBeer.breweryName} onChange={(event) => setDraftBeer({ ...draftBeer, breweryName: event.target.value })} placeholder="酒廠" />
           <select className="text-input" value={draftBeer.style} onChange={(event) => setDraftBeer({ ...draftBeer, style: event.target.value as BeerStyle })}>
             {["IPA", "Double IPA", "Hazy IPA", "Pilsner", "Stout", "Sour", "Lager", "Porter", "Other"].map((style) => <option key={style} value={style}>{style}</option>)}
           </select>
           <input className="text-input" value={draftBeer.abv} onChange={(event) => setDraftBeer({ ...draftBeer, abv: event.target.value })} placeholder="ABV" inputMode="decimal" />
           <button className="primary" disabled={!draftBeer.name || !draftBeer.breweryName || manualState === "loading"} onClick={createBeerDraft}>
-            {manualState === "loading" ? "Creating..." : "Create draft Beer"}
+            {manualState === "loading" ? "建立中..." : "建立待確認 Beer"}
           </button>
         </div>
-      </div>
+      </div> : null}
     </section>
   );
 }
