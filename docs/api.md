@@ -53,6 +53,34 @@ http://127.0.0.1:3001/api/docs-json
 | `GET` | `/posts/:postId/comments` | `ListResponseDto<CommentDto>` |
 | `POST` | `/ai/beer-match` | `BeerMatchResponseDto` |
 | `POST` | `/reviews` | `CreateReviewResponseDto` |
+| `POST` | `/posts/:postId/comments` | `CreateCommentResponseDto` |
+
+## Auth Foundation
+
+As of L05, protected writes no longer hardcode the author profile inside the write service.
+
+Temporary MVP auth behavior:
+
+- `GET /me`, `POST /reviews`, and `POST /posts/:postId/comments` accept `x-beerrank-profile-id`.
+- If the header is missing, API falls back to `MOCK_PROFILE_ID`.
+- If `MOCK_PROFILE_ID` is missing, API falls back to `user-jordan`.
+- When `DATABASE_URL` is configured, `/me` resolves the profile from PostgreSQL.
+
+Example:
+
+```http
+GET /api/me
+x-beerrank-profile-id: user-alex
+```
+
+Environment variables:
+
+```text
+AUTH_PROVIDER=mock
+MOCK_PROFILE_ID=user-jordan
+```
+
+`AUTH_PROVIDER` is documented now for the future Supabase switch. Current runtime behavior is still mock/profile-header based.
 
 ## MVP Ranking Rule In API
 
@@ -95,9 +123,9 @@ As of L02, these endpoints read from PostgreSQL when `DATABASE_URL` is configure
 
 `POST /reviews` writes to PostgreSQL when `DATABASE_URL` is configured, with mock fallback for local development without DB.
 
-L03 rules:
+L03/L05 rules:
 
-- API currently uses mock current profile `user-jordan` until Auth is implemented.
+- API resolves the current profile through the L05 auth foundation.
 - A review can include 1 to 3 `photoUrls`.
 - Photo `sort_order = 1` is the primary image.
 - Public, published, confirmed reviews with at least one photo become leaderboard eligible.
@@ -126,4 +154,4 @@ Rules:
 - `body` is required.
 - `parentCommentId` is optional.
 - Replies are limited to one level.
-- Comment writes use mock current profile `user-jordan` until L05 Auth.
+- Comment writes resolve the author through the L05 auth foundation.

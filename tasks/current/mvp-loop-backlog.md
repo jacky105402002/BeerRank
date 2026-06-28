@@ -27,7 +27,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L02 | API reads from PostgreSQL | Node 8 | done | Feed, leaderboard, beer detail, comments read seeded DB data. |
 | L03 | Review publish persistence | Node 8 | done | `POST /api/reviews` writes review/photos and survives refresh. |
 | L04 | Comment persistence | Node 8 | done | Comments and one-level replies are stored and returned from DB. |
-| L05 | Auth foundation | Node 8 | next | Google login identifies the current user; mock user removed from protected writes. |
+| L05 | Auth foundation | Node 8 | in_progress | Profile-header foundation is done; Supabase Google login remains pending. |
 | L06 | Photo upload and storage | Node 8 | pending | Up to 3 photos upload; first photo is primary; public URLs render. |
 | L07 | AI matching contract hardening | Node 9 | pending | Mock and real providers share one adapter contract; suggestions are auditable. |
 | L08 | Real AI vision/text matching | Node 9 | pending | Server-side AI suggests candidates from photos and metadata. |
@@ -158,7 +158,16 @@ POST nested reply beyond one level -> 400
 
 ## L05 - Auth Foundation
 
-Decision needed:
+Implemented foundation:
+
+- `AuthService` resolves current profile from `x-beerrank-profile-id`.
+- Missing header falls back to `MOCK_PROFILE_ID`, then `user-jordan`.
+- `GET /api/me` reads the current profile from PostgreSQL when DB is configured.
+- `POST /api/reviews` no longer hardcodes `user-jordan` inside write logic.
+- `POST /api/posts/:postId/comments` no longer hardcodes `user-jordan` inside write logic.
+- Swagger documents the temporary MVP profile header.
+
+Still needed for full L05 completion:
 
 - Supabase Auth with Zeabur PostgreSQL as app DB
 - Supabase Auth + Supabase PostgreSQL/Storage
@@ -170,10 +179,10 @@ Use Supabase Auth for Google login while keeping Zeabur PostgreSQL as the app DB
 
 Acceptance criteria:
 
-- User can sign in with Google.
-- API can identify current user.
-- `profiles` record is created or synced.
-- Protected actions stop using hardcoded mock user.
+- Pending: User can sign in with Google.
+- Done: API can identify current user through the temporary auth foundation.
+- Pending: `profiles` record is created or synced from OAuth identity.
+- Done: Protected actions stop using hardcoded mock user.
 
 ## L06 - Photo Upload And Storage
 

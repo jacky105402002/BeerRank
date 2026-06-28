@@ -10,8 +10,6 @@ import type {
   CreateReviewResponseDto
 } from "./types";
 
-const MOCK_CURRENT_PROFILE_ID = "user-jordan";
-
 @Injectable()
 export class WriteService {
   constructor(
@@ -23,7 +21,7 @@ export class WriteService {
     return this.database.isConfigured();
   }
 
-  async createReview(body: CreateReviewRequestDto): Promise<CreateReviewResponseDto> {
+  async createReview(body: CreateReviewRequestDto, currentProfileId: string): Promise<CreateReviewResponseDto> {
     this.validateReview(body);
 
     const reviewId = `review-${randomUUID()}`;
@@ -35,7 +33,7 @@ export class WriteService {
         throw new NotFoundException("Beer not found");
       }
 
-      const profile = await client.query("select id from profiles where id = $1", [MOCK_CURRENT_PROFILE_ID]);
+      const profile = await client.query("select id from profiles where id = $1", [currentProfileId]);
       if (profile.rowCount === 0) {
         throw new NotFoundException("Current profile not found");
       }
@@ -56,7 +54,7 @@ export class WriteService {
         `,
         [
           reviewId,
-          MOCK_CURRENT_PROFILE_ID,
+          currentProfileId,
           body.beerId,
           body.rating,
           body.reviewText.trim(),
@@ -83,7 +81,11 @@ export class WriteService {
     };
   }
 
-  async createComment(reviewId: string, body: CreateCommentRequestDto): Promise<CreateCommentResponseDto> {
+  async createComment(
+    reviewId: string,
+    body: CreateCommentRequestDto,
+    currentProfileId: string
+  ): Promise<CreateCommentResponseDto> {
     this.validateComment(body);
 
     const commentId = `comment-${randomUUID()}`;
@@ -94,7 +96,7 @@ export class WriteService {
         throw new NotFoundException("Review not found");
       }
 
-      const profile = await client.query("select id from profiles where id = $1", [MOCK_CURRENT_PROFILE_ID]);
+      const profile = await client.query("select id from profiles where id = $1", [currentProfileId]);
       if (profile.rowCount === 0) {
         throw new NotFoundException("Current profile not found");
       }
@@ -128,7 +130,7 @@ export class WriteService {
         [
           commentId,
           reviewId,
-          MOCK_CURRENT_PROFILE_ID,
+          currentProfileId,
           body.parentCommentId ?? null,
           body.body.trim()
         ]

@@ -1,5 +1,5 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Query } from "@nestjs/common";
-import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req } from "@nestjs/common";
+import { ApiBody, ApiHeader, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type {
   BeerMatchRequestDto,
   CreateCommentRequestDto,
@@ -18,6 +18,7 @@ import {
   posts,
   profiles
 } from "./mock-data";
+import { AuthService, type RequestLike } from "./auth.service";
 import { DatabaseService } from "./database.service";
 import { ReadService } from "./read.service";
 import { WriteService } from "./write.service";
@@ -26,6 +27,7 @@ import { WriteService } from "./write.service";
 @Controller()
 export class AppController {
   constructor(
+    private readonly authService: AuthService,
     private readonly database: DatabaseService,
     private readonly readService: ReadService,
     private readonly writeService: WriteService
@@ -44,11 +46,25 @@ export class AppController {
     };
   }
 
-  @ApiOperation({ summary: "Get the current mock user" })
+  @ApiOperation({ summary: "Get the current user resolved by the temporary auth foundation" })
+  @ApiHeader({
+    name: "x-beerrank-profile-id",
+    required: false,
+    description: "Temporary MVP auth header. Defaults to MOCK_PROFILE_ID or user-jordan."
+  })
   @Get("me")
-  me() {
+  async me(@Req() request: RequestLike) {
+    if (this.database.isConfigured()) {
+      return {
+        user: await this.authService.getCurrentProfile(request)
+      };
+    }
+
+    const profileId = this.authService.resolveProfileId(request);
+    const profile = profiles.find((item) => item.id === profileId) ?? profiles[2];
+
     return {
-      user: profiles[2]
+      user: profile
     };
   }
 
@@ -123,6 +139,11 @@ export class AppController {
   }
 
   @ApiOperation({ summary: "Create a comment or one-level reply on a review post" })
+  @ApiHeader({
+    name: "x-beerrank-profile-id",
+    required: false,
+    description: "Temporary MVP auth header. Defaults to MOCK_PROFILE_ID or user-jordan."
+  })
   @ApiBody({
     schema: {
       example: {
@@ -134,20 +155,25 @@ export class AppController {
   @Post("posts/:postId/comments")
   async createComment(
     @Param("postId") postId: string,
-    @Body() body: CreateCommentRequestDto
+    @Body() body: CreateCommentRequestDto,
+    @Req() request: RequestLike
   ): Promise<CreateCommentResponseDto> {
+    const profileId = this.authService.resolveProfileId(request);
+
     if (this.writeService.isReady()) {
-      return this.writeService.createComment(postId, body);
+      return this.writeService.createComment(postId, body, profileId);
     }
+
+    const profile = profiles.find((item) => item.id === profileId) ?? profiles[2];
 
     return {
       comment: {
         id: `comment-mock-${Date.now()}`,
         postId,
         author: {
-          id: profiles[2].id,
-          displayName: profiles[2].displayName,
-          avatarUrl: profiles[2].avatarUrl
+          id: profile.id,
+          displayName: profile.displayName,
+          avatarUrl: profile.avatarUrl
         },
         parentCommentId: body.parentCommentId,
         body: body.body,
@@ -185,6 +211,11 @@ export class AppController {
   }
 
   @ApiOperation({ summary: "Publish a review post" })
+  @ApiHeader({
+    name: "x-beerrank-profile-id",
+    required: false,
+    description: "Temporary MVP auth header. Defaults to MOCK_PROFILE_ID or user-jordan."
+  })
   @ApiBody({
     schema: {
       example: {
@@ -197,9 +228,14 @@ export class AppController {
     }
   })
   @Post("reviews")
-  async createReview(@Body() body: CreateReviewRequestDto): Promise<CreateReviewResponseDto> {
+  async createReview(
+    @Body() body: CreateReviewRequestDto,
+    @Req() request: RequestLike
+  ): Promise<CreateReviewResponseDto> {
+    const profileId = this.authService.resolveProfileId(request);
+
     if (this.writeService.isReady()) {
-      return this.writeService.createReview(body);
+      return this.writeService.createReview(body, profileId);
     }
 
     const beer = beers.find((item) => item.id === body.beerId);
@@ -208,10 +244,11 @@ export class AppController {
     }
 
     const photoUrls = body.photoUrls.slice(0, 3);
+    const profile = profiles.find((item) => item.id === profileId) ?? profiles[2];
     const leaderboardEligible = body.visibility === "public" && photoUrls.length > 0 && body.rating > 0;
     const post = {
       id: `post-mock-${Date.now()}`,
-      author: profiles[2],
+      author: profile,
       beer,
       primaryPhotoUrl: photoUrls[0] ?? "",
       photoUrls,
