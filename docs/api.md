@@ -150,6 +150,8 @@ Future provider:
 
 ```text
 AI_PROVIDER=openai
+OPENAI_API_KEY=<server-side key>
+OPENAI_MODEL=gpt-4.1-mini
 ```
 
 Request:
@@ -203,6 +205,33 @@ Product boundary:
 - AI suggestions never confirm a Beer automatically.
 - User confirmation remains the only source of truth before `POST /reviews`.
 - AI keys stay server-side; the frontend only calls BeerRank API.
+
+## Real AI Vision/Text Matching
+
+As of L08, `AI_PROVIDER=openai` is implemented behind the same `AiMatchService` adapter used by the mock provider.
+
+Behavior:
+
+- The API sends user hints plus up to 3 review photos to OpenAI's Responses API.
+- The request uses multimodal content with `input_text` and `input_image`.
+- The model is instructed to choose only Beer ids from the server-side Beer catalog.
+- Unknown or invented Beer ids are filtered out by BeerRank API.
+- If no catalog candidate survives filtering, the response becomes `no_results`.
+- User confirmation remains required before publishing a review.
+
+Required Zeabur API environment variables:
+
+```text
+AI_PROVIDER=openai
+OPENAI_API_KEY=<server-side OpenAI API key>
+OPENAI_MODEL=gpt-4.1-mini
+```
+
+Current verification status:
+
+- Mock provider is fully smoke-tested.
+- OpenAI provider compiles and safely fails when `OPENAI_API_KEY` is missing.
+- Live OpenAI matching still needs a real API key in the API service environment.
 
 ## MVP Ranking Rule In API
 

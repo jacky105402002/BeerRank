@@ -30,7 +30,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L05 | Auth foundation | Node 8 | in_progress | Profile-header foundation is done; Supabase Google login remains pending. |
 | L06 | Photo upload and storage | Node 8 | in_progress | Mock upload foundation is done; Supabase/object storage remains pending. |
 | L07 | AI matching contract hardening | Node 9 | done | Mock provider uses adapter contract; suggestions are auditable. |
-| L08 | Real AI vision/text matching | Node 9 | pending | Server-side AI suggests candidates from photos and metadata. |
+| L08 | Real AI vision/text matching | Node 9 | in_progress | OpenAI provider is implemented; live API-key verification remains pending. |
 | L09 | Manual beer search and create Beer | Node 8/9 | pending | User can search existing Beer or create `needs_review` Beer when AI fails. |
 | L10 | Leaderboard aggregation | Node 8 | pending | Only eligible public reviews count; Beer Detail proof count matches ranking. |
 | L11 | Frontend form completion | Node 6/8 | pending | Review composer uses real inputs/API states instead of polished mock values. |
@@ -232,19 +232,23 @@ Acceptance criteria:
 
 ## L08 - Real AI Vision/Text Matching
 
-Scope:
+Implemented:
 
-- Server-side AI call only.
-- Compare provider output with Beer catalog.
-- Return ranked existing Beer candidates.
-- Fall back to manual search/create Beer.
+- Server-side OpenAI provider behind `AiMatchService`.
+- Uses Responses API-style multimodal request with `input_text` and `input_image`.
+- Sends Beer catalog to the provider and asks for catalog beer ids only.
+- Filters unknown/invented Beer ids after provider response.
+- Returns ranked existing Beer candidates.
+- Falls back to `no_results` when no valid catalog candidate remains.
+- Keeps AI keys server-side through `OPENAI_API_KEY`.
 
 Acceptance criteria:
 
-- High-confidence path can suggest an existing Beer.
-- Low-confidence path asks for manual confirmation.
-- No-results path can create a Beer draft.
-- API never auto-confirms Beer.
+- Done in code: High-confidence path can suggest an existing Beer.
+- Done in contract: Low-confidence path asks for manual confirmation.
+- Pending UI/API loop: No-results path can create a Beer draft.
+- Done: API never auto-confirms Beer.
+- Pending live verification: OpenAI API key is configured in Zeabur and real image matching is smoke-tested.
 
 ## Recommended Next Item
 
