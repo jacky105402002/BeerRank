@@ -2,7 +2,13 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import { randomUUID } from "node:crypto";
 import { DatabaseService } from "./database.service";
 import { ReadService } from "./read.service";
-import type { CreateReviewRequestDto, CreateReviewResponseDto } from "./types";
+import type {
+  CommentDto,
+  CreateCommentRequestDto,
+  CreateCommentResponseDto,
+  CreateReviewRequestDto,
+  CreateReviewResponseDto
+} from "./types";
 
 const MOCK_CURRENT_PROFILE_ID = "user-jordan";
 
@@ -77,6 +83,67 @@ export class WriteService {
     };
   }
 
+  async createComment(reviewId: string, body: CreateCommentRequestDto): Promise<CreateCommentResponseDto> {
+    this.validateComment(body);
+
+    const commentId = `comment-${randomUUID()}`;
+
+    await this.database.transaction(async (client) => {
+      const review = await client.query("select id from reviews where id = $1 and status = 'published'", [reviewId]);
+      if (review.rowCount === 0) {
+        throw new NotFoundException("Review not found");
+      }
+
+      const profile = await client.query("select id from profiles where id = $1", [MOCK_CURRENT_PROFILE_ID]);
+      if (profile.rowCount === 0) {
+        throw new NotFoundException("Current profile not found");
+      }
+
+      if (body.parentCommentId) {
+        const parent = await client.query<{ parent_comment_id: string | null }>(
+          "select parent_comment_id from comments where id = $1 and review_id = $2",
+          [body.parentCommentId, reviewId]
+        );
+
+        if (parent.rowCount === 0) {
+          throw new NotFoundException("Parent comment not found");
+        }
+
+        if (parent.rows[0]?.parent_comment_id) {
+          throw new BadRequestException("Only one-level replies are supported");
+        }
+      }
+
+      await client.query(
+        `
+          insert into comments (
+            id,
+            review_id,
+            author_profile_id,
+            parent_comment_id,
+            body
+          )
+          values ($1, $2, $3, $4, $5)
+        `,
+        [
+          commentId,
+          reviewId,
+          MOCK_CURRENT_PROFILE_ID,
+          body.parentCommentId ?? null,
+          body.body.trim()
+        ]
+      );
+    });
+
+    const comments = await this.readService.getComments(reviewId);
+    const comment = this.findComment(comments, commentId);
+    if (!comment) {
+      throw new NotFoundException("Created comment not found");
+    }
+
+    return { comment };
+  }
+
   private validateReview(body: CreateReviewRequestDto) {
     if (!body.beerId) {
       throw new BadRequestException("beerId is required");
@@ -101,5 +168,30 @@ export class WriteService {
     if (body.visibility !== "public" && body.visibility !== "private") {
       throw new BadRequestException("visibility must be public or private");
     }
+  }
+
+  private validateComment(body: CreateCommentRequestDto) {
+    if (!body.body?.trim()) {
+      throw new BadRequestException("body is required");
+    }
+
+    if (body.body.trim().length > 1000) {
+      throw new BadRequestException("body must be 1000 characters or fewer");
+    }
+  }
+
+  private findComment(comments: CommentDto[], commentId: string): CommentDto | undefined {
+    for (const comment of comments) {
+      if (comment.id === commentId) {
+        return comment;
+      }
+
+      const reply = this.findComment(comment.replies ?? [], commentId);
+      if (reply) {
+        return reply;
+      }
+    }
+
+    return undefined;
   }
 }

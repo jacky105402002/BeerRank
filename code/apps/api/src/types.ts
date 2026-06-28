@@ -145,3 +145,12 @@ export interface CreateReviewResponseDto {
   post: FeedPostDto;
   leaderboardEligible: boolean;
 }
+
+export interface CreateCommentRequestDto {
+  body: string;
+  parentCommentId?: ID;
+}
+
+export interface CreateCommentResponseDto {
+  comment: CommentDto;
+}

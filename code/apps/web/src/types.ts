@@ -142,3 +142,12 @@ export interface BeerMatchRequestDto {
   styleHint?: BeerStyle;
   mode?: "high" | "low" | "none";
 }
+
+export interface CreateCommentRequestDto {
+  body: string;
+  parentCommentId?: ID;
+}
+
+export interface CreateCommentResponseDto {
+  comment: CommentDto;
+}

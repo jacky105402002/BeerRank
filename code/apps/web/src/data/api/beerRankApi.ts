@@ -3,6 +3,8 @@ import type {
   BeerMatchRequestDto,
   BeerMatchResponseDto,
   CommentDto,
+  CreateCommentRequestDto,
+  CreateCommentResponseDto,
   CurrentUserResponseDto,
   FeedPostDto,
   LeaderboardRowDto,
@@ -43,6 +45,12 @@ export const beerRankApi = {
   },
   getComments(postId: string) {
     return request<ListResponseDto<CommentDto>>(`/posts/${postId}/comments`);
+  },
+  createComment(postId: string, body: CreateCommentRequestDto) {
+    return request<CreateCommentResponseDto>(`/posts/${postId}/comments`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
   },
   matchBeer(body: BeerMatchRequestDto) {
     return request<BeerMatchResponseDto>("/ai/beer-match", {

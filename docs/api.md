@@ -102,3 +102,28 @@ L03 rules:
 - Photo `sort_order = 1` is the primary image.
 - Public, published, confirmed reviews with at least one photo become leaderboard eligible.
 - Private reviews are persisted but do not enter `eligible_reviews`.
+
+## Comment Persistence
+
+As of L04, comments are database-backed when `DATABASE_URL` is configured.
+
+Implemented endpoints:
+
+- `GET /posts/:postId/comments`
+- `POST /posts/:postId/comments`
+
+`POST /posts/:postId/comments` accepts:
+
+```json
+{
+  "body": "This looks great fresh.",
+  "parentCommentId": "comment-citra-1"
+}
+```
+
+Rules:
+
+- `body` is required.
+- `parentCommentId` is optional.
+- Replies are limited to one level.
+- Comment writes use mock current profile `user-jordan` until L05 Auth.

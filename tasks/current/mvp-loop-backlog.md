@@ -26,8 +26,8 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L01 | DB schema and migration | Node 8 | done | Tables and seed data exist; migration is repeatable. |
 | L02 | API reads from PostgreSQL | Node 8 | done | Feed, leaderboard, beer detail, comments read seeded DB data. |
 | L03 | Review publish persistence | Node 8 | done | `POST /api/reviews` writes review/photos and survives refresh. |
-| L04 | Comment persistence | Node 8 | next | Comments and one-level replies are stored and returned from DB. |
-| L05 | Auth foundation | Node 8 | pending | Google login identifies the current user; mock user removed from protected writes. |
+| L04 | Comment persistence | Node 8 | done | Comments and one-level replies are stored and returned from DB. |
+| L05 | Auth foundation | Node 8 | next | Google login identifies the current user; mock user removed from protected writes. |
 | L06 | Photo upload and storage | Node 8 | pending | Up to 3 photos upload; first photo is primary; public URLs render. |
 | L07 | AI matching contract hardening | Node 9 | pending | Mock and real providers share one adapter contract; suggestions are auditable. |
 | L08 | Real AI vision/text matching | Node 9 | pending | Server-side AI suggests candidates from photos and metadata. |
@@ -140,9 +140,21 @@ Scope:
 
 Acceptance criteria:
 
-- Comments are stored in DB.
-- Comment count updates in feed/detail responses.
-- Signed-out write behavior is blocked or explicitly handled.
+- Done locally against Zeabur DB: comments are stored in DB.
+- Done locally against Zeabur DB: one-level replies are stored and nested under parent comments.
+- Done locally against Zeabur DB: nested replies beyond one level return `400`.
+- Done locally against Zeabur DB: comment count updates in feed responses.
+- Temporary behavior: writes use mock current profile `user-jordan` until L05 Auth.
+
+Verification:
+
+```text
+POST /api/posts/post-citra-alex/comments root -> 201
+POST /api/posts/post-citra-alex/comments reply -> 201
+GET /api/posts/post-citra-alex/comments -> nested replies returned
+GET /api/feed -> comment count reflects DB comments
+POST nested reply beyond one level -> 400
+```
 
 ## L05 - Auth Foundation
 

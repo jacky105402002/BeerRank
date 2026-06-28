@@ -2,6 +2,8 @@ import { Body, Controller, Get, NotFoundException, Param, Post, Query } from "@n
 import { ApiBody, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type {
   BeerMatchRequestDto,
+  CreateCommentRequestDto,
+  CreateCommentResponseDto,
   CreateReviewRequestDto,
   CreateReviewResponseDto
 } from "./types";
@@ -117,6 +119,43 @@ export class AppController {
 
     return {
       items: commentsByPostId[postId] ?? []
+    };
+  }
+
+  @ApiOperation({ summary: "Create a comment or one-level reply on a review post" })
+  @ApiBody({
+    schema: {
+      example: {
+        body: "This looks great fresh.",
+        parentCommentId: "comment-citra-1"
+      }
+    }
+  })
+  @Post("posts/:postId/comments")
+  async createComment(
+    @Param("postId") postId: string,
+    @Body() body: CreateCommentRequestDto
+  ): Promise<CreateCommentResponseDto> {
+    if (this.writeService.isReady()) {
+      return this.writeService.createComment(postId, body);
+    }
+
+    return {
+      comment: {
+        id: `comment-mock-${Date.now()}`,
+        postId,
+        author: {
+          id: profiles[2].id,
+          displayName: profiles[2].displayName,
+          avatarUrl: profiles[2].avatarUrl
+        },
+        parentCommentId: body.parentCommentId,
+        body: body.body,
+        createdAt: new Date().toISOString(),
+        likeCount: 0,
+        viewerHasLiked: false,
+        replies: []
+      }
     };
   }
 
