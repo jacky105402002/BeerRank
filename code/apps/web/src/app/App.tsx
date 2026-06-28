@@ -1,5 +1,5 @@
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
-import { type ChangeEvent, useMemo, useState } from "react";
+import { type ChangeEvent, type ReactNode, useMemo, useState } from "react";
 import type { BeerStyle, BeerSummaryDto, Locale, ReviewVisibility, UploadReviewPhotoInputDto } from "../types";
 import {
   beerDetail,
@@ -122,9 +122,26 @@ function Icon({ name }: { name: IconName }) {
 export function App() {
   const locale = useMemo<Locale>(() => detectLocale(navigator.language || "en"), []);
   const t = dictionaries[locale];
-  const [loginOpen, setLoginOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => localStorage.getItem("beerrank-authenticated") === "true");
   const [commentsOpen, setCommentsOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftState>(emptyDraft);
+  const navigate = useNavigate();
+
+  function signIn() {
+    localStorage.setItem("beerrank-authenticated", "true");
+    setIsAuthenticated(true);
+  }
+
+  function signOut() {
+    localStorage.removeItem("beerrank-authenticated");
+    setIsAuthenticated(false);
+    setDraft(emptyDraft);
+    navigate("/feed");
+  }
+
+  function requireLogin() {
+    navigate("/login");
+  }
 
   return (
     <div className="app-bg">
@@ -132,47 +149,84 @@ export function App() {
         <header className="topbar">
           <div className="brand-mark">BR</div>
           <strong>{t.common.beerRank}</strong>
-          <button className="icon-button" onClick={() => setLoginOpen(true)} aria-label="Notifications">
+          <button className="icon-button" onClick={isAuthenticated ? undefined : requireLogin} aria-label="Notifications">
             <Icon name="bell" />
           </button>
         </header>
         <main className="screen">
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
-            <Route path="/feed" element={<FeedPage t={t} onLogin={() => setLoginOpen(true)} onComments={setCommentsOpen} />} />
-            <Route path="/review/new" element={<ReviewPage t={t} draft={draft} setDraft={setDraft} />} />
-            <Route path="/review/new/match" element={<MatchPage t={t} locale={locale} draft={draft} setDraft={setDraft} />} />
-            <Route path="/beers/:beerId" element={<BeerDetailPage t={t} onLogin={() => setLoginOpen(true)} />} />
-            <Route path="/leaderboard" element={<LeaderboardPage t={t} />} />
-            <Route path="/profile" element={<ProfilePage t={t} />} />
+            <Route path="/feed" element={<FeedPage t={t} isAuthenticated={isAuthenticated} onLogin={requireLogin} onComments={setCommentsOpen} />} />
+            <Route path="/login" element={<LoginPage t={t} isAuthenticated={isAuthenticated} onSignIn={signIn} />} />
+            <Route path="/review/new" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ReviewPage t={t} draft={draft} setDraft={setDraft} /></ProtectedRoute>} />
+            <Route path="/review/new/match" element={<ProtectedRoute isAuthenticated={isAuthenticated}><MatchPage t={t} locale={locale} draft={draft} setDraft={setDraft} /></ProtectedRoute>} />
+            <Route path="/beers/:beerId" element={<ProtectedRoute isAuthenticated={isAuthenticated}><BeerDetailPage t={t} onLogin={requireLogin} /></ProtectedRoute>} />
+            <Route path="/leaderboard" element={<ProtectedRoute isAuthenticated={isAuthenticated}><LeaderboardPage t={t} /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute isAuthenticated={isAuthenticated}><ProfilePage t={t} onSignOut={signOut} /></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to="/feed" replace />} />
           </Routes>
         </main>
-        <BottomNav t={t} />
-        {loginOpen ? <LoginSheet t={t} onClose={() => setLoginOpen(false)} /> : null}
+        <BottomNav t={t} isAuthenticated={isAuthenticated} />
         {commentsOpen ? <CommentSheet postId={commentsOpen} t={t} onClose={() => setCommentsOpen(null)} /> : null}
       </div>
     </div>
   );
 }
 
-function BottomNav({ t }: { t: T }) {
+function ProtectedRoute({ isAuthenticated, children }: { isAuthenticated: boolean; children: ReactNode }) {
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to={`/login?next=${encodeURIComponent(`${location.pathname}${location.search}`)}`} replace />;
+  }
+
+  return children;
+}
+
+function BottomNav({ t, isAuthenticated }: { t: T; isAuthenticated: boolean }) {
+  const protectedTarget = (path: string) => isAuthenticated ? path : `/login?next=${encodeURIComponent(path)}`;
+
   return (
     <nav className="bottom-nav">
       <NavLink to="/feed"><Icon name="feed" /><span>{t.nav.feed}</span></NavLink>
-      <NavLink to="/leaderboard"><Icon name="ranking" /><span>{t.nav.ranking}</span></NavLink>
-      <NavLink to="/review/new" className="add-link"><Icon name="plus" /><span>{t.nav.add}</span></NavLink>
-      <NavLink to="/profile"><Icon name="profile" /><span>{t.nav.profile}</span></NavLink>
+      <NavLink to={protectedTarget("/leaderboard")}><Icon name="ranking" /><span>{t.nav.ranking}</span></NavLink>
+      <NavLink to={protectedTarget("/review/new")} className="add-link"><Icon name="plus" /><span>{t.nav.add}</span></NavLink>
+      <NavLink to={protectedTarget("/profile")}><Icon name="profile" /><span>{t.nav.profile}</span></NavLink>
     </nav>
   );
 }
 
-function FeedPage({ t, onLogin, onComments }: { t: T; onLogin: () => void; onComments: (id: string) => void }) {
+function FeedPage({
+  t,
+  isAuthenticated,
+  onLogin,
+  onComments
+}: {
+  t: T;
+  isAuthenticated: boolean;
+  onLogin: () => void;
+  onComments: (id: string) => void;
+}) {
   const navigate = useNavigate();
   const feed = useApiResource(() => beerRankApi.getFeed(), { items: posts }, []);
+  const openComments = (postId: string) => isAuthenticated ? onComments(postId) : onLogin();
+  const handleMemberAction = () => {
+    if (!isAuthenticated) {
+      onLogin();
+    }
+  };
+
   return (
     <section className="page">
       <h1>{t.feed.title}</h1>
       <p className="muted">{t.feed.subtitle}</p>
+      {!isAuthenticated ? (
+        <div className="guest-banner">
+          <strong>{t.login.guestTitle}</strong>
+          <p>{t.login.guestBody}</p>
+          <button className="secondary" onClick={onLogin}>{t.login.signIn}</button>
+        </div>
+      ) : null}
       {feed.error ? <p className="muted">Mock API unavailable. Showing local fallback.</p> : null}
       <div className="feed-list">
         {feed.data.items.map((post) => (
@@ -185,11 +239,11 @@ function FeedPage({ t, onLogin, onComments }: { t: T; onLogin: () => void; onCom
               </div>
               <span className="visibility-pill">{post.visibility === "public" ? t.common.public : t.common.private}</span>
             </div>
-            <button className="image-button" onClick={() => navigate(`/beers/${post.beer.id}`)}>
+            <button className="image-button" onClick={() => navigate(isAuthenticated ? `/beers/${post.beer.id}` : `/login?next=${encodeURIComponent(`/beers/${post.beer.id}`)}`)}>
               <img src={post.primaryPhotoUrl} alt={post.beer.name} />
             </button>
             <div className="post-body">
-              <button className="link-title" onClick={() => navigate(`/beers/${post.beer.id}`)}>{post.beer.name}</button>
+              <button className="link-title" onClick={() => navigate(isAuthenticated ? `/beers/${post.beer.id}` : `/login?next=${encodeURIComponent(`/beers/${post.beer.id}`)}`)}>{post.beer.name}</button>
               <div className="row">
                 <span>{post.beer.style}</span>
                 <span className="stars" aria-label={`${post.rating} stars`}>★★★★★</span>
@@ -199,12 +253,48 @@ function FeedPage({ t, onLogin, onComments }: { t: T; onLogin: () => void; onCom
               {post.isRankingEligible ? <span className="verified">{t.common.verified}</span> : null}
             </div>
             <div className="actions">
-              <button onClick={onLogin}><Icon name="heart" /> <span>{post.likeCount}</span></button>
-              <button onClick={() => onComments(post.id)}><Icon name="comment" /> <span>{post.commentCount}</span></button>
-              <button onClick={onLogin} aria-label="Save"><Icon name="bookmark" /></button>
+              <button onClick={handleMemberAction}><Icon name="heart" /> <span>{post.likeCount}</span></button>
+              <button onClick={() => openComments(post.id)}><Icon name="comment" /> <span>{post.commentCount}</span></button>
+              <button onClick={handleMemberAction} aria-label="Save"><Icon name="bookmark" /></button>
             </div>
           </article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function LoginPage({
+  t,
+  isAuthenticated,
+  onSignIn
+}: {
+  t: T;
+  isAuthenticated: boolean;
+  onSignIn: () => void;
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const next = new URLSearchParams(location.search).get("next") || "/profile";
+
+  function handleSignIn() {
+    onSignIn();
+    navigate(next, { replace: true });
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to={next} replace />;
+  }
+
+  return (
+    <section className="page login-page">
+      <div className="login-card">
+        <div className="brand-mark large">BR</div>
+        <h1>{t.login.title}</h1>
+        <p className="muted">{t.login.body}</p>
+        <button className="primary" onClick={handleSignIn}>{t.login.google}</button>
+        <button className="secondary" onClick={() => navigate("/feed")}>{t.login.keepBrowsing}</button>
+        <small>{t.login.mvpNote}</small>
       </div>
     </section>
   );
@@ -662,7 +752,7 @@ function LeaderboardPage({ t }: { t: T }) {
   );
 }
 
-function ProfilePage({ t }: { t: T }) {
+function ProfilePage({ t, onSignOut }: { t: T; onSignOut: () => void }) {
   const { data } = useApiResource(() => beerRankApi.getMe(), { user: profiles[2] }, []);
   const profile = data.user ?? profiles[2];
   return (
@@ -680,22 +770,13 @@ function ProfilePage({ t }: { t: T }) {
       <div className="panel">
         <h2>{t.profile.title}</h2>
         <p className="muted">{t.profile.sync}</p>
-        <button className="secondary">使用 Google 繼續</button>
+        <div className="member-row">
+          <span>目前登入</span>
+          <strong>{profile.displayName}</strong>
+        </div>
+        <button className="secondary" onClick={onSignOut}>登出</button>
       </div>
     </section>
-  );
-}
-
-function LoginSheet({ t, onClose }: { t: T; onClose: () => void }) {
-  return (
-    <div className="sheet-backdrop">
-      <div className="sheet">
-        <h2>{t.feed.loginTitle}</h2>
-        <p>{t.feed.loginBody}</p>
-        <button className="primary" onClick={onClose}>使用 Google 繼續</button>
-        <button className="ghost" onClick={onClose}>稍後再說</button>
-      </div>
-    </div>
   );
 }
 

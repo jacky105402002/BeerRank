@@ -105,6 +105,53 @@ h2 {
   line-height: 1.5;
 }
 
+.guest-banner,
+.login-card {
+  background: #fffaf3;
+  border: 1px solid #eadccd;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(64, 38, 18, 0.08);
+}
+
+.guest-banner {
+  padding: 14px;
+  margin: 14px 0 18px;
+}
+
+.guest-banner p {
+  margin: 6px 0 12px;
+  color: #756354;
+  line-height: 1.45;
+}
+
+.guest-banner .secondary {
+  margin-top: 0;
+}
+
+.login-page {
+  min-height: 100%;
+  display: grid;
+  align-items: center;
+}
+
+.login-card {
+  padding: 24px 18px;
+  display: grid;
+  gap: 12px;
+  text-align: left;
+}
+
+.brand-mark.large {
+  width: 48px;
+  height: 48px;
+  font-size: 15px;
+}
+
+.login-card .primary,
+.login-card .secondary {
+  margin-top: 0;
+}
+
 .feed-list,
 .ranking-list {
   display: grid;
@@ -542,6 +589,21 @@ small {
   border-radius: 12px;
   padding: 12px;
   font-weight: 800;
+}
+
+.member-row {
+  border: 1px solid #eadccd;
+  border-radius: 14px;
+  background: #fffdf8;
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+  margin: 12px 0;
+}
+
+.member-row span {
+  color: #756354;
+  font-size: 12px;
 }
 
 .match-card {

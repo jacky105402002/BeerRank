@@ -27,7 +27,7 @@ This backlog lists the missing BeerRank MVP work as loop-sized items. Each item 
 | L02 | API reads from PostgreSQL | Node 8 | done | Feed, leaderboard, beer detail, comments read seeded DB data. |
 | L03 | Review publish persistence | Node 8 | done | `POST /api/reviews` writes review/photos and survives refresh. |
 | L04 | Comment persistence | Node 8 | done | Comments and one-level replies are stored and returned from DB. |
-| L05 | Auth foundation | Node 8 | in_progress | Profile-header foundation is done; Supabase Google login remains pending. |
+| L05 | Auth foundation | Node 8 | in_progress | Profile-header and frontend auth gate foundations are done; Supabase Google login remains pending. |
 | L06 | Photo upload and storage | Node 8 | in_progress | Mock upload foundation is done; Supabase/object storage remains pending. |
 | L07 | AI matching contract hardening | Node 9 | done | Mock provider uses adapter contract; suggestions are auditable. |
 | L08 | Real AI vision/text matching | Node 9 | in_progress | Zeabur/OpenAI-compatible providers are implemented; live API-key verification remains pending. |
@@ -166,6 +166,11 @@ Implemented foundation:
 - `POST /api/reviews` no longer hardcodes `user-jordan` inside write logic.
 - `POST /api/posts/:postId/comments` no longer hardcodes `user-jordan` inside write logic.
 - Swagger documents the temporary MVP profile header.
+- Frontend has a dedicated `/login` page.
+- Frontend guests can browse `/feed` only.
+- Guests attempting ranking, publish, Beer Detail, AI Match, or profile are redirected to `/login`.
+- MVP login uses local session state and returns the user to the intended route.
+- Profile page exposes the current temporary member state and logout.
 
 Still needed for full L05 completion:
 
@@ -181,6 +186,7 @@ Acceptance criteria:
 
 - Pending: User can sign in with Google.
 - Done: API can identify current user through the temporary auth foundation.
+- Done: Frontend blocks non-feed routes until the temporary local login is active.
 - Pending: `profiles` record is created or synced from OAuth identity.
 - Done: Protected actions stop using hardcoded mock user.
 

@@ -24,6 +24,16 @@ type Dictionary = {
     loginTitle: string;
     loginBody: string;
   };
+  login: {
+    title: string;
+    body: string;
+    guestTitle: string;
+    guestBody: string;
+    google: string;
+    signIn: string;
+    keepBrowsing: string;
+    mvpNote: string;
+  };
   review: {
     title: string;
     subtitle: string;
@@ -79,6 +89,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
       loginTitle: "需要登入",
       loginBody: "登入後可以按讚、留言、收藏與發布酒評。"
     },
+    login: {
+      title: "登入 BeerRank",
+      body: "登入後才能發布酒評、查看排行榜、進入啤酒詳情、留言與管理個人紀錄。",
+      guestTitle: "目前是訪客模式",
+      guestBody: "訪客只能瀏覽動態。想看排行榜或發布酒評，請先登入。",
+      google: "使用 Google 登入",
+      signIn: "登入 / 註冊",
+      keepBrowsing: "先看動態",
+      mvpNote: "MVP 目前使用本機登入狀態；下一階段會接 Supabase Google Auth。"
+    },
     review: {
       title: "新增酒評",
       subtitle: "最多 3 張照片，第一張會成為主要證明照片。",
@@ -131,6 +151,16 @@ export const dictionaries: Record<Locale, Dictionary> = {
       subtitle: "Every public rating comes from a real published drinking post.",
       loginTitle: "Login required",
       loginBody: "Sign in to like, comment, save, and publish reviews."
+    },
+    login: {
+      title: "Sign in to BeerRank",
+      body: "Sign in to publish reviews, view rankings, open beer details, comment, and manage your profile.",
+      guestTitle: "Browsing as guest",
+      guestBody: "Guests can only browse the feed. Sign in to unlock ranking and publishing.",
+      google: "Continue with Google",
+      signIn: "Sign in / Register",
+      keepBrowsing: "Keep browsing feed",
+      mvpNote: "MVP currently uses local session state. Supabase Google Auth will replace this next."
     },
     review: {
       title: "Add Review",
